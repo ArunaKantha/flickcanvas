@@ -1,19 +1,89 @@
-<%- include("partials/header") %>
+<!DOCTYPE html>
+<html lang="en">
 
-<main class="watch-page">
+<head>
 
-    <h1>▶ Watch Movie</h1>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        <%= movie.title %> - FLICKCANVAS
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+</head>
+
+<body>
+
+    <%- include("partials/header") %>
+
+    <main class="watch-page">
+
+        <h1>
+            <%= movie.title %>
+        </h1>
+
+        <%
+const videoList = locals.videos || [];
+
+const trailer =
+    videoList.find(video =>
+        video.site === "YouTube" &&
+        video.type === "Trailer" &&
+        video.official === true &&
+        video.key
+    ) ||
+    videoList.find(video =>
+        video.site === "YouTube" &&
+        video.type === "Trailer" &&
+        video.key
+    ) ||
+    videoList.find(video =>
+        video.site === "YouTube" &&
+        video.type === "Teaser" &&
+        video.key
+    );
+%>
+
+<% if (trailer && trailer.key) { %>
 
     <div class="video-container">
-
-        <p>
-            Your authorized video player will appear here.
-        </p>
-
+        <iframe
+            src="https://www.youtube.com/embed/<%= trailer.key %>?rel=0"
+            title="<%= movie.title %> Official Trailer"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen>
+        </iframe>
     </div>
 
-    <%- include("partials/ad") %>
+<% } else { %>
 
-</main>
+    <p>Official trailer not available.</p>
 
-<%- include("partials/footer") %>
+<% } %>
+
+
+        <a
+            href="/"
+            class="back-btn"
+        >
+            ← Back to Movies
+        </a>
+
+    </main>
+
+    <%- include("partials/footer") %>
+
+</body>
+
+</html>

@@ -170,7 +170,7 @@ app.get("/watch/:id", async (req, res) => {
   const movieId = req.params.id;
 
   try {
-    const response = await axios.get(
+    const movieResponse = await axios.get(
       `${TMDB_BASE_URL}/movie/${movieId}`,
       {
         params: {
@@ -180,8 +180,24 @@ app.get("/watch/:id", async (req, res) => {
       }
     );
 
+    const videoResponse = await axios.get(
+      `${TMDB_BASE_URL}/movie/${movieId}/videos`,
+      {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          language: "en-US"
+        }
+      }
+    );
+
+    const videos = videoResponse.data.results || [];
+
+    console.log("Movie:", movieResponse.data.title);
+    console.log("Videos:", videos);
+
     res.render("watch", {
-      movie: response.data
+      movie: movieResponse.data,
+      videos: videos
     });
 
   } catch (error) {
