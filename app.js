@@ -13,6 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// TMDB API සඳහා නිවැරදි ලින්ක්ස් (URLs)
 const TMDB_BASE_URL = "https://themoviedb.org";
 const IMAGE_BASE_URL = "https://tmdb.org";
 const BACKDROP_BASE_URL = "https://tmdb.org";
@@ -24,7 +25,7 @@ app.get("/", async (req, res) => {
       axios.get(`${TMDB_BASE_URL}/movie/popular`, {
         params: { api_key: process.env.TMDB_API_KEY, language: "en-US", page: 1 }
       }),
-      axios.get(`${TMDB_BASE_URL}/trending/movie/week`, {
+      axios.get(`${TMDB_BASE_URL}/trending/all/week`, {
         params: { api_key: process.env.TMDB_API_KEY }
       }),
       axios.get(`${TMDB_BASE_URL}/movie/now_playing`, {
@@ -37,7 +38,7 @@ app.get("/", async (req, res) => {
       trending: trending.data.results,
       nowPlaying: nowPlaying.data.results,
       imageBase: IMAGE_BASE_URL,
-      searchQuery: null // මෙන්න මේක අනිවාර්යයෙන්ම තියෙන්න ඕනේ
+      searchQuery: null
     });
   } catch (error) {
     console.error(error.message);
@@ -110,7 +111,11 @@ app.get("/watch/:id", async (req, res) => {
   }
 });
 
-// Server එක Start කිරීම
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+// Vercel සහ Local සර්වර් දෙකටම ගැළපෙන පරිදි ක්‍රියාත්මක කිරීම
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
