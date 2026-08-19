@@ -136,6 +136,7 @@ app.get("/movie/:id", async (req, res) => {
   const movieId = req.params.id;
 
   try {
+    // Get movie details from TMDB
     const response = await axios.get(
       `${TMDB_BASE_URL}/movie/${movieId}`,
       {
@@ -147,10 +148,87 @@ app.get("/movie/:id", async (req, res) => {
       }
     );
 
+    const movie = response.data;
+
+    let providerLink = null;
+    let providerName = null;
+
+    // =========================
+    // WATCHMODE
+    // =========================
+    if (process.env.WATCHMODE_API_KEY) {
+      try {
+        const watchmodeResponse = await axios.get(
+          "https://api.watchmode.com/v1/search/",
+          {
+            params: {
+              apiKey: process.env.WATCHMODE_API_KEY,
+              search_field: "name",
+              search_value: movie.title
+            }
+          }
+        );
+
+        const titles = watchmodeResponse.data.title_results || [];
+
+console.log("WATCHMODE RESULTS:", watchmodeResponse.data);
+
+        if (titles.length > 0) {
+          const watchmodeId = titles[0].id;
+
+          const sourcesResponse = await axios.get(
+            `https://api.watchmode.com/v1/title/${watchmodeId}/sources/`,
+            {
+              params: {
+                apiKey: process.env.WATCHMODE_API_KEY,
+                regions: "US"
+              }
+            }
+          );
+
+          const sources = sourcesResponse.data || [];
+
+console.log("WATCHMODE SOURCES:", sources);
+
+const source =
+  sources.find(
+    s => s.web_url && s.type === "purchase"
+  ) ||
+  sources.find(
+    s => s.web_url && s.type === "rent"
+  ) ||
+  sources.find(
+    s => s.web_url && s.type === "sub"
+  ) ||
+  sources.find(
+    s => s.web_url && s.type === "free"
+  );
+
+          if (source) {
+            providerLink = source.web_url;
+            providerName = source.name || "Official Provider";
+          }
+        }
+
+      } catch (watchmodeError) {
+        console.error(
+          "WATCHMODE ERROR:",
+          watchmodeError.response?.data ||
+          watchmodeError.message
+        );
+      }
+    }
+
+    console.log("Movie:", movie.title);
+    console.log("Provider:", providerName);
+    console.log("Provider URL:", providerLink);
+
     res.render("movie", {
-      movie: response.data,
+      movie: movie,
       imageBase: IMAGE_BASE_URL,
-      backdropBase: BACKDROP_BASE_URL
+      backdropBase: BACKDROP_BASE_URL,
+      providerLink: providerLink,
+      providerName: providerName
     });
 
   } catch (error) {
@@ -162,7 +240,6 @@ app.get("/movie/:id", async (req, res) => {
     res.status(404).send("Movie not found");
   }
 });
-
 // =========================
 // WATCH PAGE
 // =========================
@@ -170,6 +247,7 @@ app.get("/watch/:id", async (req, res) => {
   const movieId = req.params.id;
 
   try {
+    // Get movie information from TMDB
     const movieResponse = await axios.get(
       `${TMDB_BASE_URL}/movie/${movieId}`,
       {
@@ -180,6 +258,7 @@ app.get("/watch/:id", async (req, res) => {
       }
     );
 
+    // Get YouTube videos / trailers from TMDB
     const videoResponse = await axios.get(
       `${TMDB_BASE_URL}/movie/${movieId}/videos`,
       {
@@ -192,8 +271,8 @@ app.get("/watch/:id", async (req, res) => {
 
     const videos = videoResponse.data.results || [];
 
-    console.log("Movie:", movieResponse.data.title);
-    console.log("Videos:", videos);
+    console.log("WATCH MOVIE:", movieResponse.data.title);
+    console.log("VIDEOS FOUND:", videos.length);
 
     res.render("watch", {
       movie: movieResponse.data,
@@ -209,6 +288,8 @@ app.get("/watch/:id", async (req, res) => {
     res.status(404).send("Movie not found");
   }
 });
+
+
 
 // =========================
 // 404 PAGE

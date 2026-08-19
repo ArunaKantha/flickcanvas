@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -18,7 +17,6 @@
         rel="stylesheet"
         href="/css/style.css"
     >
-
 </head>
 
 <body>
@@ -32,45 +30,52 @@
         </h1>
 
         <%
-const videoList = locals.videos || [];
+            const videoList = locals.videos || [];
 
-const trailer =
-    videoList.find(video =>
-        video.site === "YouTube" &&
-        video.type === "Trailer" &&
-        video.official === true &&
-        video.key
-    ) ||
-    videoList.find(video =>
-        video.site === "YouTube" &&
-        video.type === "Trailer" &&
-        video.key
-    ) ||
-    videoList.find(video =>
-        video.site === "YouTube" &&
-        video.type === "Teaser" &&
-        video.key
-    );
-%>
+            const trailer =
+                videoList.find(video =>
+                    video.site === "YouTube" &&
+                    video.type === "Trailer" &&
+                    video.official === true
+                ) ||
 
-<% if (trailer && trailer.key) { %>
+                videoList.find(video =>
+                    video.site === "YouTube" &&
+                    video.type === "Trailer"
+                ) ||
 
-    <div class="video-container">
-        <iframe
-            src="https://www.youtube.com/embed/<%= trailer.key %>?rel=0"
-            title="<%= movie.title %> Official Trailer"
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerpolicy="strict-origin-when-cross-origin"
-            allowfullscreen>
-        </iframe>
-    </div>
+                videoList.find(video =>
+                    video.site === "YouTube" &&
+                    video.type === "Teaser"
+                ) ||
 
-<% } else { %>
+                videoList.find(video =>
+                    video.site === "YouTube"
+                );
+        %>
 
-    <p>Official trailer not available.</p>
 
-<% } %>
+        <% if (trailer && trailer.key) { %>
+
+            <div class="video-container">
+
+                <iframe
+                    src="https://www.youtube.com/embed/<%= trailer.key %>"
+                    title="<%= movie.title %> Trailer"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen>
+                </iframe>
+
+            </div>
+
+        <% } else { %>
+
+            <p>
+                Official trailer not available.
+            </p>
+
+        <% } %>
 
 
         <a
@@ -81,8 +86,6 @@ const trailer =
         </a>
 
     </main>
-
-    <%- include("partials/footer") %>
 
 </body>
 

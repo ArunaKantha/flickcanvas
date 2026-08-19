@@ -57,26 +57,31 @@
                     ⏱️ <%= movie.runtime %> min
                 </span>
 
-            </div>
-
-
             <div class="buttons">
 
-                <a
-    href="/watch/<%= movie.id %>"
-    class="play-btn"
->
-    ▶ Play Movie
-</a>
+    <!-- TMDB Official Trailer -->
+    <a
+        href="/watch/<%= movie.id %>"
+        class="play-btn"
+    >
+        ▶ Play Movie
+    </a>
 
-                <a
-                    href="#download"
-                    class="download-btn"
-                >
-                    ⬇ Download
-                </a>
+    <!-- Official Streaming / Rent / Buy -->
+    <% if (providerLink) { %>
 
-            </div>
+        <a
+            href="<%= providerLink %>"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="download-btn"
+        >
+            🔗 Watch / Rent / Buy
+        </a>
+
+    <% } %>
+
+</div>
 
         </div>
 
@@ -88,16 +93,29 @@
 <%- include("partials/ad") %>
 
 
-<section id="download" class="download-section">
+<div class="buttons">
 
-    <h2>Download</h2>
+    <a
+        href="/watch/<%= movie.id %>"
+        class="play-btn"
+    >
+        ▶ Play Movie
+    </a>
 
-    <p>
-        Download links are available only for
-        authorized content.
-    </p>
+    <% if (providerLink) { %>
 
-</section>
+        <a
+            href="<%= providerLink %>"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="download-btn"
+        >
+            🔗 Watch / Rent / Buy
+        </a>
+
+    <% } %>
+
+</div>
 
 
 <%- include("partials/footer") %>
