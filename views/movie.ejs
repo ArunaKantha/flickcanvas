@@ -1,0 +1,103 @@
+<%- include("partials/header") %>
+
+<section
+    class="movie-details"
+    style="
+        background-image:
+        linear-gradient(
+            rgba(0,0,0,.8),
+            rgba(0,0,0,.95)
+        ),
+        url('<%= backdropBase + movie.backdrop_path %>');
+    "
+>
+
+    <div class="movie-container">
+
+        <div class="movie-poster">
+
+            <% if (movie.poster_path) { %>
+
+                <img
+                    src="<%= imageBase + movie.poster_path %>"
+                    alt="<%= movie.title %>"
+                >
+
+            <% } %>
+
+        </div>
+
+
+        <div class="movie-content">
+
+            <h1>
+                <%= movie.title %>
+            </h1>
+
+            <div class="rating">
+
+                ⭐ <%= movie.vote_average.toFixed(1) %>
+
+            </div>
+
+            <p>
+
+                <%= movie.overview %>
+
+            </p>
+
+
+            <div class="movie-meta">
+
+                <span>
+                    📅 <%= movie.release_date %>
+                </span>
+
+                <span>
+                    ⏱️ <%= movie.runtime %> min
+                </span>
+
+            </div>
+
+
+            <div class="buttons">
+
+                <a
+                    href="/watch/<%= movie.id %>"
+                    class="watch-btn"
+                >
+                    ▶ Watch Now
+                </a>
+
+                <a
+                    href="#download"
+                    class="download-btn"
+                >
+                    ⬇ Download
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<%- include("partials/ad") %>
+
+
+<section id="download" class="download-section">
+
+    <h2>Download</h2>
+
+    <p>
+        Download links are available only for
+        authorized content.
+    </p>
+
+</section>
+
+
+<%- include("partials/footer") %>
