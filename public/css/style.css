@@ -312,44 +312,41 @@ footer p {
     }
 
 }
+/* =========================
+   FLICKCANVAS ADS
+   ========================= */
+
 .ad-container {
     width: 100%;
     margin: 20px auto;
     text-align: center;
+    overflow: hidden;
 }
 
 .ad-container span {
     display: block;
     font-size: 11px;
     margin-bottom: 8px;
+    opacity: 0.6;
 }
 
-.ad-desktop {
-    display: block;
+#desktop-ad {
+    width: 728px;
+    height: 90px;
+    max-width: 100%;
+    margin: 0 auto;
 }
 
-.ad-mobile-50,
-.ad-mobile-250 {
-    display: none;
+#mobile-ad-50 {
+    width: 320px;
+    height: 50px;
+    max-width: 100%;
+    margin: 0 auto 20px;
 }
 
-@media screen and (max-width: 768px) {
-
-    .ad-desktop {
-        display: none !important;
-    }
-
-    .ad-mobile-50 {
-        display: block !important;
-        width: 320px;
-        height: 50px;
-        margin: 0 auto 20px;
-    }
-
-    .ad-mobile-250 {
-        display: block !important;
-        width: 300px;
-        height: 250px;
-        margin: 0 auto;
-    }
+#mobile-ad-250 {
+    width: 300px;
+    height: 250px;
+    max-width: 100%;
+    margin: 0 auto;
 }

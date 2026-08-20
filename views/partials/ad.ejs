@@ -2,9 +2,31 @@
 
     <span>ADVERTISEMENT</span>
 
-    <!-- DESKTOP 728x90 -->
-    <div class="ad-desktop">
-        <script>
+    <div id="desktop-ad"></div>
+
+    <div id="mobile-ad-50"></div>
+
+    <div id="mobile-ad-250"></div>
+
+</div>
+
+
+<script>
+(function () {
+
+    const isMobile = window.innerWidth <= 768;
+
+    /* =========================
+       DESKTOP AD - 728x90
+       ========================= */
+
+    if (!isMobile) {
+
+        const desktopAd = document.getElementById('desktop-ad');
+
+        const config = document.createElement('script');
+
+        config.innerHTML = `
             atOptions = {
                 'key' : '0b0cf35f44f8e08679160d9ae32fb77e',
                 'format' : 'iframe',
@@ -12,13 +34,32 @@
                 'width' : 728,
                 'params' : {}
             };
-        </script>
-        <script src="https://www.highperformanceformat.com/0b0cf35f44f8e08679160d9ae32fb77e/invoke.js"></script>
-    </div>
+        `;
 
-    <!-- MOBILE 320x50 -->
-    <div class="ad-mobile-50">
-        <script>
+        const adScript = document.createElement('script');
+
+        adScript.src =
+            'https://www.highperformanceformat.com/0b0cf35f44f8e08679160d9ae32fb77e/invoke.js';
+
+        desktopAd.appendChild(config);
+        desktopAd.appendChild(adScript);
+
+    }
+
+
+    /* =========================
+       MOBILE ADS
+       ========================= */
+
+    if (isMobile) {
+
+        /* 320x50 */
+
+        const mobile50 = document.getElementById('mobile-ad-50');
+
+        const config50 = document.createElement('script');
+
+        config50.innerHTML = `
             atOptions = {
                 'key' : '4b3bd8e7f77903b004159b5063056681',
                 'format' : 'iframe',
@@ -26,13 +67,24 @@
                 'width' : 320,
                 'params' : {}
             };
-        </script>
-        <script src="https://www.highperformanceformat.com/4b3bd8e7f77903b004159b5063056681/invoke.js"></script>
-    </div>
+        `;
 
-    <!-- MOBILE 300x250 -->
-    <div class="ad-mobile-250">
-        <script>
+        const adScript50 = document.createElement('script');
+
+        adScript50.src =
+            'https://www.highperformanceformat.com/4b3bd8e7f77903b004159b5063056681/invoke.js';
+
+        mobile50.appendChild(config50);
+        mobile50.appendChild(adScript50);
+
+
+        /* 300x250 */
+
+        const mobile250 = document.getElementById('mobile-ad-250');
+
+        const config250 = document.createElement('script');
+
+        config250.innerHTML = `
             atOptions = {
                 'key' : 'afe85253d0aa40318d165d707fafe772',
                 'format' : 'iframe',
@@ -40,8 +92,17 @@
                 'width' : 300,
                 'params' : {}
             };
-        </script>
-        <script src="https://www.highperformanceformat.com/afe85253d0aa40318d165d707fafe772/invoke.js"></script>
-    </div>
+        `;
 
-</div>
+        const adScript250 = document.createElement('script');
+
+        adScript250.src =
+            'https://www.highperformanceformat.com/afe85253d0aa40318d165d707fafe772/invoke.js';
+
+        mobile250.appendChild(config250);
+        mobile250.appendChild(adScript250);
+
+    }
+
+})();
+</script>
