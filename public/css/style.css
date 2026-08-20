@@ -312,10 +312,6 @@ footer p {
     }
 
 }
-/* ================================= */
-/* FLICKCANVAS AD CONTAINER */
-/* ================================= */
-
 .ad-container {
     width: 100%;
     margin: 20px auto;
@@ -327,26 +323,12 @@ footer p {
     display: block;
     font-size: 11px;
     margin-bottom: 8px;
-    opacity: 0.6;
 }
 
-
-/* ================================= */
-/* DESKTOP 728x90 */
-/* ================================= */
-
+/* Desktop */
 .ad-desktop {
     display: block;
-    width: 728px;
-    height: 90px;
-    max-width: 100%;
-    margin: 0 auto;
 }
-
-
-/* ================================= */
-/* MOBILE ADS - HIDDEN ON DESKTOP */
-/* ================================= */
 
 .ad-mobile-50,
 .ad-mobile-250 {
@@ -354,33 +336,24 @@ footer p {
 }
 
 
-/* ================================= */
-/* MOBILE */
-/* ================================= */
+/* Mobile */
+@media screen and (max-width: 768px) {
 
-@media (max-width: 768px) {
-
-    /* Hide desktop ad */
     .ad-desktop {
-        display: none;
+        display: none !important;
     }
 
-    /* 320x50 */
     .ad-mobile-50 {
-        display: block;
+        display: block !important;
         width: 320px;
         height: 50px;
-        max-width: 100%;
         margin: 0 auto 20px;
     }
 
-    /* 300x250 */
     .ad-mobile-250 {
-        display: block;
+        display: block !important;
         width: 300px;
         height: 250px;
-        max-width: 100%;
         margin: 0 auto;
     }
-
 }
