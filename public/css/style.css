@@ -316,7 +316,6 @@ footer p {
     width: 100%;
     margin: 20px auto;
     text-align: center;
-    overflow: hidden;
 }
 
 .ad-container span {
@@ -325,7 +324,6 @@ footer p {
     margin-bottom: 8px;
 }
 
-/* Desktop */
 .ad-desktop {
     display: block;
 }
@@ -335,8 +333,6 @@ footer p {
     display: none;
 }
 
-
-/* Mobile */
 @media screen and (max-width: 768px) {
 
     .ad-desktop {
