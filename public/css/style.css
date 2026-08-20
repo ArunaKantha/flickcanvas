@@ -312,3 +312,21 @@ footer p {
     }
 
 }
+.ad-container {
+    width: 100%;
+    max-width: 728px;
+    margin: 20px auto;
+    text-align: center;
+    overflow: hidden;
+}
+
+.ad-container span {
+    display: block;
+    font-size: 11px;
+    margin-bottom: 8px;
+    opacity: 0.6;
+}
+
+.ad-container iframe {
+    max-width: 100%;
+}
