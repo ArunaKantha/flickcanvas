@@ -11,48 +11,49 @@
 <script>
 (function () {
 
-    function loadAd(containerId, key, width, height) {
+    var isMobile = window.matchMedia("(max-width: 768px)").matches;
 
-        const container = document.getElementById(containerId);
+    function createAd(containerId, key, width, height) {
+
+        var container = document.getElementById(containerId);
 
         if (!container) return;
 
-        const config = document.createElement("script");
+        var config = document.createElement("script");
 
-        config.text = `
-            atOptions = {
-                'key' : '${key}',
-                'format' : 'iframe',
-                'height' : ${height},
-                'width' : ${width},
-                'params' : {}
-            };
-        `;
+        config.textContent =
+            "atOptions = {" +
+            "'key' : '" + key + "'," +
+            "'format' : 'iframe'," +
+            "'height' : " + height + "," +
+            "'width' : " + width + "," +
+            "'params' : {}" +
+            "};";
 
-        const adScript = document.createElement("script");
+        var script = document.createElement("script");
 
-        adScript.src =
+        script.src =
             "https://www.highperformanceformat.com/" +
             key +
             "/invoke.js";
 
         container.appendChild(config);
-        container.appendChild(adScript);
+        container.appendChild(script);
     }
 
 
-    if (window.innerWidth <= 768) {
+    if (isMobile) {
 
-        // MOBILE 320x50
-        loadAd(
+        /* MOBILE 320x50 */
+        createAd(
             "mobile-ad-50",
             "4b3bd8e7f77903b004159b5063056681",
             320,
             50
         );
 
-        // MOBILE 300x250
-        loadAd(
+        /* MOBILE 300x250 */
+        createAd(
             "mobile-ad-250",
             "afe85253d0aa40318d165d707fafe772",
             300,
@@ -61,8 +62,8 @@
 
     } else {
 
-        // DESKTOP 728x90
-        loadAd(
+        /* DESKTOP 728x90 */
+        createAd(
             "desktop-ad",
             "0b0cf35f44f8e08679160d9ae32fb77e",
             728,
