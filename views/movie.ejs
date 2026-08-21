@@ -48,50 +48,14 @@
 
 
             <div class="movie-meta">
+    <span>
+        📅 <%= movie.release_date %>
+    </span>
 
-                <span>
-                    📅 <%= movie.release_date %>
-                </span>
-
-                <span>
-                    ⏱️ <%= movie.runtime %> min
-                </span>
-
-            <div class="buttons">
-
-    <!-- TMDB Official Trailer -->
-    <a
-        href="/watch/<%= movie.id %>"
-        class="play-btn"
-    >
-        ▶ Play Movie
-    </a>
-
-    <!-- Official Streaming / Rent / Buy -->
-    <% if (providerLink) { %>
-
-        <a
-            href="<%= providerLink %>"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="download-btn"
-        >
-            🔗 Watch / Rent / Buy
-        </a>
-
-    <% } %>
-
+    <span>
+        ⏱️ <%= movie.runtime %> min
+    </span>
 </div>
-
-        </div>
-
-    </div>
-
-</section>
-
-
-<%- include("partials/ad") %>
-
 
 <div class="buttons">
 
@@ -104,18 +68,48 @@
 
     <% if (providerLink) { %>
 
-        <a
-            href="<%= providerLink %>"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="download-btn"
-        >
-            🔗 Watch / Rent / Buy
-        </a>
+    <a
+        href="<%= providerLink %>"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="download-btn"
+        id="watchProviderBtn"
+        data-provider="<%= providerLink %>"
+    >
+        🔗 Watch / Rent / Buy
+    </a>
 
-    <% } %>
+    <script>
+        const watchBtn = document.getElementById("watchProviderBtn");
+
+        watchBtn.addEventListener("click", function (event) {
+
+            // First click → Smartlink
+            if (!sessionStorage.getItem("smartlinkClicked")) {
+                event.preventDefault();
+
+                sessionStorage.setItem("smartlinkClicked", "true");
+
+                window.open(
+                    "https://clocksuch.com/p6zwnxxsr?key=4396b2a27117238a9343df4212c9ff84",
+                    "_blank"
+                );
+
+                return;
+            }
+
+            // Second click → original providerLink
+            // Normal href continues automatically
+        });
+    </script>
+
+<% } %>
 
 </div>
 
+</div>
+</section>
+
+<%- include("partials/ad") %>
 
 <%- include("partials/footer") %>
