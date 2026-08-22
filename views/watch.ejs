@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        <%= movie.title %> - FLICKCANVAS
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+</head>
+
+<body>
+
+    <%- include("partials/header") %>
+
+    <main class="watch-page">
+
+        <h1>
+            <%= movie.title %>
+        </h1>
+
+        <%
+            const videoList = locals.videos || [];
+
+            const trailer =
+                videoList.find(video =>
+                    video.site === "YouTube" &&
+                    video.type === "Trailer" &&
+                    video.official === true
+                ) ||
+
+                videoList.find(video =>
+                    video.site === "YouTube" &&
+                    video.type === "Trailer"
+                ) ||
+
+                videoList.find(video =>
+                    video.site === "YouTube" &&
+                    video.type === "Teaser"
+                ) ||
+
+                videoList.find(video =>
+                    video.site === "YouTube"
+                );
+        %>
+
+
+        <% if (trailer && trailer.key) { %>
+
+            <div class="video-container">
+
+                <iframe
+                    src="https://www.youtube.com/embed/<%= trailer.key %>"
+                    title="<%= movie.title %> Trailer"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen>
+                </iframe>
+
+            </div>
+
+        <% } else { %>
+
+            <p>
+                Official trailer not available.
+            </p>
+
+        <% } %>
+
+
+        <a
+            href="/"
+            class="back-btn"
+        >
+            ← Back to Movies
+        </a>
+
+    </main>
+
+</body>
+
+</html>
