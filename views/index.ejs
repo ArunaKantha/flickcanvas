@@ -1,25 +1,24 @@
 <%- include("partials/header") %>
 
-<section class="hero">
+<section class="hero hero-banner">
 
-    <div class="hero-content">
+    <img
+        src="/image/Firefly.png"
+        alt="FLICKCANVAS"
+        class="hero-banner-image"
+    >
 
-        <h1>FLICKCANVAS</h1>
+    <div class="hero-banner-overlay"></div>
 
-        <p>
-            Your window to the world of movies
-        </p>
+    
 
-        <a href="#movies" class="hero-btn">
-            Explore Movies
-        </a>
-
-    </div>
-
+</section>
+<section class="hero-ad-space">
+    <%- include("partials/ad") %>
 </section>
 
 
-<%- include("partials/ad") %>
+
 
 
 <main id="movies">

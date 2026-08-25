@@ -16,7 +16,9 @@ a {
 }
 
 
-/* NAVBAR */
+/* =========================
+   NAVBAR
+========================= */
 
 .navbar {
     height: 75px;
@@ -60,31 +62,48 @@ a {
 }
 
 
-/* HERO */
+/* =========================
+   HERO / FIREFLY BANNER
+========================= */
 
 .hero {
-    min-height: 450px;
+    width: 100%;
+}
+
+.hero-banner {
+    position: relative;
+    width: 100%;
+    min-height: 420px;
+    overflow: hidden;
     display: flex;
     align-items: center;
-    padding: 60px 8%;
-    background:
-        linear-gradient(
-            90deg,
-            #050505,
-            rgba(5,5,5,.5),
-            #050505
-        );
+    justify-content: center;
 }
 
-.hero h1 {
-    font-size: 60px;
-    margin-bottom: 15px;
+.hero-banner-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
-.hero p {
-    font-size: 20px;
-    color: #bbb;
-    margin-bottom: 30px;
+.hero-banner-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 1;
+}
+
+.hero-banner .hero-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    text-align: center;
+
+    /* Explore Movies button පහළට */
+    padding-top: 260px;
 }
 
 .hero-btn {
@@ -94,10 +113,18 @@ a {
     color: black;
     font-weight: bold;
     border-radius: 5px;
+    transition: 0.2s;
+}
+
+.hero-btn:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
 }
 
 
-/* MOVIE SECTIONS */
+/* =========================
+   MOVIE SECTIONS
+========================= */
 
 main {
     padding: 40px 6%;
@@ -113,8 +140,7 @@ main {
 
 .movie-grid {
     display: grid;
-    grid-template-columns:
-        repeat(auto-fill, minmax(170px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
     gap: 20px;
 }
 
@@ -122,7 +148,7 @@ main {
     background: #111;
     border-radius: 8px;
     overflow: hidden;
-    transition: .3s;
+    transition: 0.3s;
 }
 
 .movie-card:hover {
@@ -157,7 +183,9 @@ main {
 }
 
 
-/* DETAILS */
+/* =========================
+   MOVIE DETAILS
+========================= */
 
 .movie-details {
     min-height: 600px;
@@ -197,9 +225,47 @@ main {
 
 .movie-meta {
     display: flex;
-    gap: 25px;
-    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    margin: 18px 0;
+    align-items: center;
 }
+
+.movie-meta span {
+    color: #ddd;
+    white-space: nowrap;
+}
+
+.movie-meta strong {
+    color: #fff;
+    margin-left: 3px;
+}
+
+
+/* =========================
+   GENRES
+========================= */
+
+.genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0 18px;
+}
+
+.genres span {
+    padding: 6px 10px;
+    border: 1px solid #444;
+    border-radius: 20px;
+    color: #ddd;
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+
+/* =========================
+   BUTTONS
+========================= */
 
 .buttons {
     display: flex;
@@ -223,107 +289,132 @@ main {
     color: white;
 }
 
-
-/* ADS */
-
-.ad-container {
-    min-height: 100px;
-    margin: 30px auto;
-    max-width: 970px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #101010;
-    color: #555;
-    font-size: 12px;
+.play-btn {
+    display: inline-block;
+    padding: 14px 22px;
+    border-radius: 6px;
+    background: #e50914;
+    color: #fff;
+    font-weight: 700;
 }
 
 
-/* WATCH */
-
-.watch-page {
-    min-height: 600px;
-}
-
-.video-container {
-    width: 100%;
-    max-width: 1000px;
-    aspect-ratio: 16 / 9;
-    background: #000;
-    margin: 30px auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #777;
-}
-
-
-/* FOOTER */
-
-footer {
-    text-align: center;
-    padding: 50px 20px;
-    background: #0d0d0d;
-    margin-top: 50px;
-}
-
-.footer-logo {
-    font-size: 25px;
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-footer p {
-    color: #888;
-    margin: 8px;
-}
-
-
-/* MOBILE */
-
-@media (max-width: 700px) {
-
-    .navbar {
-        height: auto;
-        padding: 20px;
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    .search input {
-        width: 220px;
-    }
-
-    .hero h1 {
-        font-size: 40px;
-    }
-
-    .movie-container {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .movie-content h1 {
-        font-size: 32px;
-    }
-
-    .movie-poster img {
-        width: 220px;
-    }
-
-}
 /* =========================
-   FLICKCANVAS ADS
-   ========================= */
+   PROVIDERS
+========================= */
+
+.provider-section {
+    margin-top: 30px;
+    max-width: 700px;
+}
+
+.provider-section > h2 {
+    margin-bottom: 18px;
+}
+
+.provider-group {
+    margin: 14px 0;
+    padding: 15px;
+    border: 1px solid #292929;
+    border-radius: 9px;
+    background: rgba(0, 0, 0, 0.28);
+}
+
+.provider-group h3 {
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+.provider-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.provider-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 13px;
+    border-radius: 6px;
+    background: #222;
+    border: 1px solid #3a3a3a;
+    transition: 0.2s;
+}
+
+.provider-btn:hover {
+    background: #333;
+    transform: translateY(-2px);
+}
+
+.provider-btn small {
+    color: #aaa;
+}
+
+.provider-empty {
+    margin: 0 !important;
+    color: #777 !important;
+    font-size: 13px;
+}
+
+
+/* =========================
+   CAST
+========================= */
+
+.cast-section {
+    margin-top: 35px;
+}
+
+.cast-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.cast-card {
+    width: 120px;
+    background: #111;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.cast-card img {
+    width: 120px;
+    height: 165px;
+    object-fit: cover;
+}
+
+.cast-info {
+    padding: 8px;
+}
+
+.cast-info strong {
+    display: block;
+    font-size: 13px;
+}
+
+.cast-info small {
+    display: block;
+    color: #aaa;
+    margin-top: 4px;
+}
+
+
+/* =========================
+   ADS
+========================= */
 
 .ad-container {
     width: 100%;
     margin: 20px auto;
     text-align: center;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-/* Make all ad containers centered */
 #desktop-ad,
 #mobile-ad-50,
 #mobile-ad-250 {
@@ -332,52 +423,35 @@ footer p {
     text-align: center;
 }
 
-/* Desktop 728x90 */
 #desktop-ad {
     width: 728px;
     height: 90px;
     max-width: 100%;
 }
 
-/* Mobile 320x50 */
 #mobile-ad-50 {
     width: 320px;
     max-width: 100%;
     min-height: 50px;
 }
 
-/* Mobile 300x250 */
 #mobile-ad-250 {
     width: 300px;
     max-width: 100%;
     min-height: 250px;
 }
 
-/* Mobile */
-@media (max-width: 768px) {
 
-    .ad-container {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    #mobile-ad-50,
-    #mobile-ad-250 {
-        display: block;
-        margin-left: auto !important;
-        margin-right: auto !important;
-    }
-}/* =========================
+/* =========================
    WATCH PAGE
-   ========================= */
+========================= */
 
 .watch-page {
     max-width: 1000px;
     margin: 40px auto;
     padding: 20px;
     text-align: center;
+    min-height: 600px;
 }
 
 .watch-page h1 {
@@ -406,123 +480,228 @@ footer p {
 .back-btn {
     display: inline-block;
     padding: 12px 25px;
-    text-decoration: none;
-}
-/* PROVIDERS */
-.movie-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 24px;
-    margin: 18px 0;
-    align-items: center;
 }
 
-.movie-meta span {
-    color: #ddd;
-    white-space: nowrap;
+
+/* =========================
+   FOOTER
+========================= */
+
+footer {
+    text-align: center;
+    padding: 50px 20px;
+    background: #0d0d0d;
+    margin-top: 50px;
 }
 
-.movie-meta strong {
-    color: #fff;
-    margin-left: 3px;
+.footer-logo {
+    font-size: 25px;
+    font-weight: bold;
+    margin-bottom: 10px;
 }
 
-.genres {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 10px 0 18px;
+footer p {
+    color: #888;
+    margin: 8px;
 }
 
-.genres span {
-    padding: 6px 10px;
-    border: 1px solid #444;
-    border-radius: 20px;
-    color: #ddd;
-    font-size: 12px;
-    background: rgba(255,255,255,.05);
-}
 
-.play-btn {
-    display: inline-block;
-    padding: 14px 22px;
-    border-radius: 6px;
-    background: #e50914;
-    color: #fff;
-    font-weight: 700;
-}
-
-.provider-section {
-    margin-top: 30px;
-    max-width: 700px;
-}
-
-.provider-section > h2 {
-    margin-bottom: 18px;
-}
-
-.provider-group {
-    margin: 14px 0;
-    padding: 15px;
-    border: 1px solid #292929;
-    border-radius: 9px;
-    background: rgba(0,0,0,.28);
-}
-
-.provider-group h3 {
-    margin-bottom: 12px;
-    font-size: 16px;
-}
-
-.provider-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 9px;
-}
-
-.provider-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 13px;
-    border-radius: 6px;
-    background: #222;
-    border: 1px solid #3a3a3a;
-    transition: .2s;
-}
-
-.provider-btn:hover {
-    background: #333;
-    transform: translateY(-2px);
-}
-
-.provider-btn small {
-    color: #aaa;
-}
-
-.provider-empty {
-    margin: 0 !important;
-    color: #777 !important;
-    font-size: 13px;
-}
+/* =========================
+   MOBILE
+========================= */
 
 @media (max-width: 700px) {
+
+    .navbar {
+        height: auto;
+        padding: 20px;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .search input {
+        width: 220px;
+    }
+
+    /* Hero */
+    .hero-banner {
+        min-height: 280px;
+    }
+
+    .hero-banner .hero-content {
+        padding-top: 170px;
+    }
+
+    .hero-banner .hero-btn {
+        font-size: 13px;
+        padding: 9px 16px;
+    }
+
+    /* Movie details */
+    .movie-details {
+        padding: 15px 10px;
+        min-height: auto;
+    }
+
+    .movie-container {
+        width: 100%;
+        padding: 0;
+        gap: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .movie-poster {
+        text-align: center;
+    }
+
+    .movie-poster img {
+        width: 180px;
+        max-width: 60%;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .movie-content {
+        width: 100%;
+        max-width: none;
+    }
+
+    .movie-content h1 {
+        font-size: 24px;
+        line-height: 1.2;
+        margin: 8px 0;
+    }
+
+    .movie-content p {
+        font-size: 13px;
+        line-height: 1.55;
+        margin: 15px 0;
+    }
+
     .movie-meta {
-        gap: 9px;
+        gap: 6px;
+        margin: 8px 0;
         flex-direction: column;
         align-items: flex-start;
     }
 
+    .movie-meta span,
+    .movie-meta strong {
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    .genres {
+        gap: 5px;
+        margin: 8px 0;
+    }
+
+    .genres span {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+
+    .movie-content h2,
+    .provider-section h2,
+    .cast-section h2 {
+        font-size: 18px;
+        margin: 14px 0 7px;
+    }
+
+    .play-btn {
+        font-size: 14px;
+        padding: 9px 16px;
+    }
+
+    /* Providers */
     .provider-section {
         width: 100%;
     }
 
+    .provider-group {
+        padding: 12px;
+    }
+
+    .provider-group h3 {
+        font-size: 14px;
+        margin: 10px 0 6px;
+    }
+
     .provider-list {
         flex-direction: column;
+        gap: 6px;
     }
 
     .provider-btn {
-        justify-content: space-between;
         width: 100%;
+        justify-content: space-between;
+        padding: 8px 10px;
+        font-size: 12px;
     }
+
+    .provider-btn small {
+        font-size: 10px;
+    }
+
+    .provider-empty {
+        font-size: 12px;
+    }
+
+    /* Cast */
+    .cast-list {
+        gap: 8px;
+    }
+
+    .cast-card {
+        width: 90px;
+    }
+
+    .cast-card img {
+        width: 90px;
+        height: 125px;
+        object-fit: cover;
+    }
+
+    .cast-info strong {
+        font-size: 11px;
+        line-height: 1.2;
+    }
+
+    .cast-info small {
+        font-size: 10px;
+        line-height: 1.2;
+    }
+
+    /* Ads */
+    .ad-container {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #mobile-ad-50,
+    #mobile-ad-250 {
+        display: block;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+}
+/* =========================
+   HERO AD POSITION
+========================= */
+
+.hero-ad-space {
+    width: 100%;
+    padding-top: 35px;
+    padding-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.hero-ad-space .ad-container {
+    margin: 0 auto;
 }
