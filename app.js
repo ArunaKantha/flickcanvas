@@ -293,19 +293,32 @@ app.get("/watch/:id", async (req, res) => {
 // =========================
 // FACEBOOK AUTO POST
 // =========================
+
 app.get("/api/facebook/auto-post", async (req, res) => {
   const authorization = req.get("authorization") || "";
+
   const bearerSecret = authorization.startsWith("Bearer ")
     ? authorization.slice(7)
     : "";
-  const manualSecret = req.query.secret || "";
-  const cronSecret = process.env.CRON_SECRET || process.env.FACEBOOK_CRON_SECRET;
 
-  if (!cronSecret || (bearerSecret !== cronSecret && manualSecret !== cronSecret)) {
+  const manualSecret = req.query.secret || "";
+
+  const cronSecret =
+    process.env.CRON_SECRET ||
+    process.env.FACEBOOK_CRON_SECRET;
+
+  if (
+    !cronSecret ||
+    (bearerSecret !== cronSecret && manualSecret !== cronSecret)
+  ) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
+    // =========================
+    // GET TRENDING MOVIE
+    // =========================
+
     const trendingResponse = await axios.get(
       `${TMDB_BASE_URL}/trending/movie/day`,
       {
@@ -316,25 +329,123 @@ app.get("/api/facebook/auto-post", async (req, res) => {
       }
     );
 
-    const movie = (trendingResponse.data.results || []).find(item => item.title);
+    const movie = (trendingResponse.data.results || [])
+      .find(item => item.title);
 
     if (!movie) {
-      return res.status(404).json({ error: "No trending movie found" });
+      return res.status(404).json({
+        error: "No trending movie found"
+      });
     }
 
-    const siteUrl = (process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+    const siteUrl = (
+      process.env.SITE_URL ||
+      "http://localhost:3000"
+    ).replace(/\/$/, "");
+
     const link = `${siteUrl}/movie/${movie.id}`;
-    const message = `🎬 FLICKCANVAS Movie of the Day\n\n${movie.title}\n⭐ Rating: ${Number(movie.vote_average || 0).toFixed(1)}\n📅 Release: ${movie.release_date || "N/A"}\n\n${movie.overview || "Discover this movie on FLICKCANVAS."}\n\n👉 View movie details: ${link}\n\n#FLICKCANVAS #Movies #MovieOfTheDay`;
 
-    const { postToFacebookPage } = require("./facebook");
-    const result = await postToFacebookPage({ message, link });
+    // =========================
+    // CHECK TODAY'S FACEBOOK POSTS
+    // =========================
 
-    res.json({ success: true, movie: movie.title, facebook: result });
+    const pageId = process.env.FACEBOOK_PAGE_ID;
+    const pageAccessToken =
+      process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+
+    const graphVersion =
+      process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    const postsResponse = await axios.get(
+      `https://graph.facebook.com/${graphVersion}/${pageId}/posts`,
+      {
+        params: {
+          fields: "id,message,created_time",
+          limit: 100,
+          access_token: pageAccessToken
+        }
+      }
+    );
+
+    const posts = postsResponse.data.data || [];
+
+    // =========================
+    // DUPLICATE CHECK
+    // =========================
+
+    const alreadyPostedToday = posts.some(post => {
+      if (!post.message || !post.created_time) {
+        return false;
+      }
+
+      const postDate = new Date(post.created_time)
+        .toISOString()
+        .slice(0, 10);
+
+      return (
+        postDate === today &&
+        post.message.includes(`TMDB Movie ID: ${movie.id}`)
+      );
+    });
+
+    if (alreadyPostedToday) {
+      return res.json({
+        success: true,
+        skipped: true,
+        reason: "This movie was already posted today",
+        movie: movie.title
+      });
+    }
+
+    // =========================
+    // CREATE FACEBOOK MESSAGE
+    // =========================
+
+    const message = `🎬 FLICKCANVAS Movie of the Day
+
+${movie.title}
+⭐ Rating: ${Number(movie.vote_average || 0).toFixed(1)}
+📅 Release: ${movie.release_date || "N/A"}
+
+${movie.overview || "Discover this movie on FLICKCANVAS."}
+
+👉 View movie details: ${link}
+
+TMDB Movie ID: ${movie.id}
+
+#FLICKCANVAS #Movies #MovieOfTheDay`;
+
+    // =========================
+    // POST TO FACEBOOK
+    // =========================
+
+    const { postToFacebookPage } =
+      require("./facebook");
+
+    const result = await postToFacebookPage({
+      message,
+      link
+    });
+
+    res.json({
+      success: true,
+      skipped: false,
+      movie: movie.title,
+      facebook: result
+    });
+
   } catch (error) {
-    console.error("FACEBOOK AUTO POST ERROR:", error.response?.data || error.message);
+    console.error(
+      "FACEBOOK AUTO POST ERROR:",
+      error.response?.data || error.message
+    );
+
     res.status(500).json({
       error: "Facebook post failed",
-      details: error.response?.data || error.message
+      details:
+        error.response?.data || error.message
     });
   }
 });
