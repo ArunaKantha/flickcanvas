@@ -354,113 +354,150 @@ if (
     const link = `${siteUrl}/movie/${movie.id}`;
 
     // =========================
-    // CHECK TODAY'S FACEBOOK POSTS
-    // =========================
+// CHECK TODAY'S FACEBOOK POSTS
+// =========================
 
-    const pageId = process.env.FACEBOOK_PAGE_ID;
-    const pageAccessToken =
-      process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+const pageId = process.env.FACEBOOK_PAGE_ID;
+const pageAccessToken =
+  process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
-    const graphVersion =
-      process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
+const graphVersion =
+  process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
 
-    const today = new Date().toISOString().slice(0, 10);
+const today = new Date().toISOString().slice(0, 10);
 
-    const postsResponse = await axios.get(
-      `https://graph.facebook.com/${graphVersion}/${pageId}/posts`,
-      {
-        params: {
-          fields: "id,message,created_time",
-          limit: 100,
-          access_token: pageAccessToken
-        }
-      }
-    );
-
-    const posts = postsResponse.data.data || [];
-
-    // =========================
-    // DUPLICATE CHECK
-    // =========================
-
-    const alreadyPostedToday = posts.some(post => {
-      if (!post.message || !post.created_time) {
-        return false;
-      }
-
-      const postDate = new Date(post.created_time)
-        .toISOString()
-        .slice(0, 10);
-
-      return (
-        postDate === today &&
-        post.message.includes(`TMDB Movie ID: ${movie.id}`)
-      );
-    });
-
-    if (alreadyPostedToday) {
-      return res.json({
-        success: true,
-        skipped: true,
-        reason: "This movie was already posted today",
-        movie: movie.title
-      });
+const postsResponse = await axios.get(
+  `https://graph.facebook.com/${graphVersion}/${pageId}/posts`,
+  {
+    params: {
+      fields: "id,message,created_time",
+      limit: 100,
+      access_token: pageAccessToken
     }
+  }
+);
 
-    // =========================
-    // CREATE FACEBOOK MESSAGE
-    // =========================
+const posts = postsResponse.data.data || [];
 
-    const message = `🎬 FLICKCANVAS Movie of the Day
+// =========================
+// DUPLICATE CHECK
+// =========================
+
+const alreadyPostedToday = posts.some(post => {
+  if (!post.message || !post.created_time) {
+    return false;
+  }
+
+  const postDate = new Date(post.created_time)
+    .toISOString()
+    .slice(0, 10);
+
+  return (
+    postDate === today &&
+    post.message.includes(`TMDB Movie ID: ${movie.id}`)
+  );
+});
+
+if (alreadyPostedToday) {
+  return res.json({
+    success: true,
+    skipped: true,
+    reason: "This movie was already posted today",
+    movie: movie.title
+  });
+}
+
+// =========================
+// CREATE FACEBOOK MESSAGE
+// =========================
+
+function formatReleaseDate(dateString) {
+  if (!dateString) return "N/A";
+
+  const date = new Date(`${dateString}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  });
+}
+
+const formattedDate = formatReleaseDate(movie.release_date);
+
+const rating = Number(movie.vote_average || 0).toFixed(1);
+
+// TMDB poster image
+const posterUrl = movie.poster_path
+  ? `${IMAGE_BASE_URL}${movie.poster_path}`
+  : null;
+
+const message = `🎬 FLICKCANVAS Movie of the Day
 
 ${movie.title}
-⭐ Rating: ${Number(movie.vote_average || 0).toFixed(1)}
-📅 Release: ${movie.release_date || "N/A"}
+
+⭐ Rating: ${rating}/10
+📅 Release Date: ${formattedDate}
 
 ${movie.overview || "Discover this movie on FLICKCANVAS."}
 
-👉 View movie details: ${link}
+💬 Would you watch this movie? Tell us what you think! 👇
+
+❤️ Like this post if you love discovering new movies.
+
+📌 Follow FLICKCANVAS to discover more trending movies, trailers, and movie updates every day!
+
+👉 View movie details:
+${link}
 
 TMDB Movie ID: ${movie.id}
 
-#FLICKCANVAS #Movies #MovieOfTheDay`;
+#FLICKCANVAS #MovieOfTheDay #Movies #MovieLovers #TrendingMovies`;
 
-    // =========================
-    // POST TO FACEBOOK
-    // =========================
+// =========================
+// POST TO FACEBOOK
+// =========================
 
-    const { postToFacebookPage } =
-      require("./facebook");
+const { postToFacebookPage } =
+  require("./facebook");
 
-    const result = await postToFacebookPage({
-      message,
-      link
-    });
-
-    res.json({
-      success: true,
-      skipped: false,
-      movie: movie.title,
-      facebook: result
-    });
-
-  } catch (error) {
-    console.error(
-      "FACEBOOK AUTO POST ERROR:",
-      error.response?.data || error.message
-    );
-
-    res.status(500).json({
-      error: "Facebook post failed",
-      details:
-        error.response?.data || error.message
-    });
-  }
+const result = await postToFacebookPage({
+  message,
+  link,
+  imageUrl: posterUrl
 });
+
+res.json({
+  success: true,
+  skipped: false,
+  movie: movie.title,
+  facebook: result
+});
+
+} catch (error) {
+  console.error(
+    "FACEBOOK AUTO POST ERROR:",
+    error.response?.data || error.message
+  );
+
+  res.status(500).json({
+    error: "Facebook post failed",
+    details:
+      error.response?.data || error.message
+  });
+}
+});
+
+
 
 // =========================
 // 404 PAGE
 // =========================
+
 app.use((req, res) => {
   res.status(404).send("Page not found");
 });
@@ -468,6 +505,7 @@ app.use((req, res) => {
 // =========================
 // LOCAL SERVER
 // =========================
+
 // Vercel එකේදී app.listen() run කරන්න එපා.
 if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, () => {
@@ -479,4 +517,5 @@ if (process.env.NODE_ENV !== "production") {
 // =========================
 // EXPORT FOR VERCEL
 // =========================
+
 module.exports = app;
