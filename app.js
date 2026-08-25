@@ -297,22 +297,30 @@ app.get("/watch/:id", async (req, res) => {
 app.get("/api/facebook/auto-post", async (req, res) => {
   const authorization = req.get("authorization") || "";
 
-  const bearerSecret = authorization.startsWith("Bearer ")
-    ? authorization.slice(7)
-    : "";
+const bearerSecret = authorization.startsWith("Bearer ")
+  ? authorization.slice(7)
+  : "";
 
-  const manualSecret = req.query.secret || "";
+const manualSecret = req.query.secret || "";
 
-  const cronSecret =
-    process.env.CRON_SECRET ||
-    process.env.FACEBOOK_CRON_SECRET;
+const cronSecret =
+  process.env.CRON_SECRET ||
+  process.env.FACEBOOK_CRON_SECRET;
 
-  if (
-    !cronSecret ||
-    (bearerSecret !== cronSecret && manualSecret !== cronSecret)
-  ) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+// Vercel Cron requests
+const isVercelCron =
+  req.headers["x-vercel-cron"] === "1";
+
+if (
+  !isVercelCron &&
+  (!cronSecret ||
+    (bearerSecret !== cronSecret &&
+     manualSecret !== cronSecret))
+) {
+  return res.status(401).json({
+    error: "Unauthorized"
+  });
+}
 
   try {
     // =========================
