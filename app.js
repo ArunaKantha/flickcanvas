@@ -805,42 +805,40 @@ app.post("/api/cron", async (req, res) => {
       });
     }
 
-    // Directly run the auto-post logic
-    const trendingResponse = await axios.get(
-      `${TMDB_BASE_URL}/trending/movie/day`,
+    // =========================
+    // RUN FACEBOOK + INSTAGRAM AUTO POST
+    // =========================
+
+    const siteUrl = (
+      process.env.SITE_URL ||
+      "http://localhost:3000"
+    ).replace(/\/$/, "");
+
+    const response = await axios.get(
+      `${siteUrl}/api/facebook/auto-post`,
       {
-        params: {
-          api_key: process.env.TMDB_API_KEY,
-          language: "en-US"
+        headers: {
+          Authorization: `Bearer ${cronSecret}`
         }
       }
     );
 
-    const movie = (trendingResponse.data.results || [])
-      .find(item => item.title);
-
-    if (!movie) {
-      return res.status(404).json({
-        success: false,
-        error: "No trending movie found"
-      });
-    }
-
     return res.json({
       success: true,
-      message: "Cron authentication works",
-      movie: movie.title
+      message: "Cron auto-post completed",
+      result: response.data
     });
 
   } catch (error) {
     console.error(
-      "CRON ERROR:",
+      "CRON AUTO POST ERROR:",
       error.response?.data || error.message
     );
 
     return res.status(500).json({
       success: false,
-      error: error.response?.data || error.message
+      error:
+        error.response?.data || error.message
     });
   }
 });
