@@ -470,12 +470,231 @@ const result = await postToFacebookPage({
   link,
   imageUrl: posterUrl
 });
+// =========================
+// INSTAGRAM AUTO POST
+// =========================
+
+let instagramResult = null;
+
+try {
+  const instagramAccountId =
+    process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
+
+  const instagramAccessToken =
+    process.env.INSTAGRAM_ACCESS_TOKEN;
+
+  const instagramGraphVersion =
+    process.env.INSTAGRAM_GRAPH_VERSION || "v26.0";
+
+  if (!instagramAccountId || !instagramAccessToken) {
+    console.log(
+      "Instagram auto post skipped: Instagram credentials missing"
+    );
+  } else if (!posterUrl) {
+    console.log(
+      "Instagram auto post skipped: Movie has no poster"
+    );
+  } else {
+
+    const instagramCaption = `🎬 FLICKCANVAS Movie of the Day
+
+${movie.title}
+
+⭐ Rating: ${rating}/10
+
+📅 Release Date: ${formattedDate}
+
+${movie.overview || "Discover this movie on FLICKCANVAS."}
+
+👉 View movie details:
+${link}
+
+TMDB Movie ID: ${movie.id}
+
+#FLICKCANVAS #MovieOfTheDay #Movies #MovieLovers #TrendingMovies`;
+
+    // =========================
+    // CHECK TODAY'S INSTAGRAM POSTS
+    // =========================
+
+    const mediaResponse = await axios.get(
+      `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
+      {
+        params: {
+          fields: "id,caption,timestamp,media_type",
+          limit: 100,
+          access_token: instagramAccessToken
+        }
+      }
+    );
+
+    const instagramMedia =
+      mediaResponse.data.data || [];
+
+    const today = new Date()
+      .toISOString()
+      .slice(0, 10);
+
+    const alreadyPostedInstagram =
+      instagramMedia.some(item => {
+
+        if (!item.caption || !item.timestamp) {
+          return false;
+        }
+
+        const postDate = new Date(item.timestamp)
+          .toISOString()
+          .slice(0, 10);
+
+        return (
+          postDate === today &&
+          item.caption.includes(
+            `TMDB Movie ID: ${movie.id}`
+          )
+        );
+      });
+
+    if (alreadyPostedInstagram) {
+
+      instagramResult = {
+        success: true,
+        skipped: true,
+        reason: "This movie was already posted on Instagram today",
+        movie: movie.title
+      };
+
+      console.log(
+        `Instagram duplicate skipped: ${movie.title}`
+      );
+
+    } else {
+
+      // =========================
+      // CREATE MEDIA CONTAINER
+      // =========================
+
+      const containerResponse = await axios.post(
+        `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
+        null,
+        {
+          params: {
+            image_url: posterUrl,
+            caption: instagramCaption,
+            access_token: instagramAccessToken
+          }
+        }
+      );
+
+      const creationId =
+        containerResponse.data.id;
+
+      if (!creationId) {
+        throw new Error(
+          "Instagram media container was not created"
+        );
+      }
+
+      // =========================
+      // WAIT FOR MEDIA PROCESSING
+      // =========================
+
+      let mediaReady = false;
+
+      for (let attempt = 0; attempt < 10; attempt++) {
+
+        await new Promise(resolve =>
+          setTimeout(resolve, 3000)
+        );
+
+        const statusResponse = await axios.get(
+          `https://graph.facebook.com/${instagramGraphVersion}/${creationId}`,
+          {
+            params: {
+              fields: "status_code",
+              access_token: instagramAccessToken
+            }
+          }
+        );
+
+        const status =
+          statusResponse.data.status_code;
+
+        console.log(
+          `Instagram media status: ${status}`
+        );
+
+        if (status === "FINISHED") {
+          mediaReady = true;
+          break;
+        }
+
+        if (
+          status === "ERROR" ||
+          status === "EXPIRED"
+        ) {
+          throw new Error(
+            `Instagram media processing failed: ${status}`
+          );
+        }
+      }
+
+      if (!mediaReady) {
+        throw new Error(
+          "Instagram media processing timeout"
+        );
+      }
+
+      // =========================
+      // PUBLISH INSTAGRAM POST
+      // =========================
+
+      const publishResponse = await axios.post(
+        `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media_publish`,
+        null,
+        {
+          params: {
+            creation_id: creationId,
+            access_token: instagramAccessToken
+          }
+        }
+      );
+
+      instagramResult = {
+        success: true,
+        skipped: false,
+        movie: movie.title,
+        instagramMediaId:
+          publishResponse.data.id
+      };
+
+      console.log(
+        `Instagram posted successfully: ${movie.title}`
+      );
+    }
+  }
+
+} catch (instagramError) {
+
+  console.error(
+    "INSTAGRAM AUTO POST ERROR:",
+    instagramError.response?.data ||
+    instagramError.message
+  );
+
+  instagramResult = {
+    success: false,
+    error:
+      instagramError.response?.data ||
+      instagramError.message
+  };
+}
 
 res.json({
   success: true,
   skipped: false,
   movie: movie.title,
-  facebook: result
+  facebook: result,
+  instagram: instagramResult
 });
 
 } catch (error) {
@@ -493,7 +712,138 @@ res.json({
 });
 
 
+// =========================
+// FACEBOOK TEST POST
+// =========================
 
+app.get("/api/facebook/test-post", async (req, res) => {
+  const authorization = req.get("authorization") || "";
+  const bearerSecret = authorization.startsWith("Bearer ")
+    ? authorization.slice(7)
+    : "";
+
+  const manualSecret = req.query.secret || "";
+  const cronSecret =
+    process.env.CRON_SECRET ||
+    process.env.FACEBOOK_CRON_SECRET;
+
+  if (
+    !cronSecret ||
+    (bearerSecret !== cronSecret &&
+      manualSecret !== cronSecret)
+  ) {
+    return res.status(401).json({
+      error: "Unauthorized"
+    });
+  }
+
+  try {
+    const { postToFacebookPage } =
+      require("./facebook");
+
+    const testMessage = `🎬 FLICKCANVAS TEST POST
+
+Facebook API connection is working! ✅
+
+This is a test post from the FlickCanvas Node.js server.
+
+#FLICKCANVAS #TestPost`;
+
+    const result = await postToFacebookPage({
+      message: testMessage,
+      link: process.env.SITE_URL || "http://localhost:3000"
+    });
+
+    res.json({
+      success: true,
+      message: "Facebook test post published successfully",
+      facebook: result
+    });
+
+  } catch (error) {
+    console.error(
+      "FACEBOOK TEST POST ERROR:",
+      error.response?.data || error.message
+    );
+
+    res.status(500).json({
+      success: false,
+      error:
+        error.response?.data || error.message
+    });
+  }
+});
+// =========================
+// DEBUG TEST
+// =========================
+
+app.get("/api/debug", (req, res) => {
+  res.json({
+    ok: true,
+    message: "THIS IS THE CURRENT APP.JS"
+  });
+});
+// =========================
+// FACEBOOK CRON
+// =========================
+
+app.post("/api/cron", async (req, res) => {
+  try {
+    const cronSecret =
+      process.env.CRON_SECRET ||
+      process.env.FACEBOOK_CRON_SECRET;
+
+    const authorization = req.get("authorization") || "";
+
+    const bearerSecret = authorization.startsWith("Bearer ")
+      ? authorization.slice(7)
+      : "";
+
+    if (!cronSecret || bearerSecret !== cronSecret) {
+      return res.status(401).json({
+        error: "Unauthorized"
+      });
+    }
+
+    // Directly run the auto-post logic
+    const trendingResponse = await axios.get(
+      `${TMDB_BASE_URL}/trending/movie/day`,
+      {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          language: "en-US"
+        }
+      }
+    );
+
+    const movie = (trendingResponse.data.results || [])
+      .find(item => item.title);
+
+    if (!movie) {
+      return res.status(404).json({
+        success: false,
+        error: "No trending movie found"
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Cron authentication works",
+      movie: movie.title
+    });
+
+  } catch (error) {
+    console.error(
+      "CRON ERROR:",
+      error.response?.data || error.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message
+    });
+  }
+});
 // =========================
 // 404 PAGE
 // =========================
