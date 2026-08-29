@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service - FLICKCANVAS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .privacy-container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.7;
+      color: #eee;
+    }
+    .privacy-container h1 { margin-bottom: 10px; }
+    .privacy-container h2 { margin-top: 30px; }
+    .privacy-container p, .privacy-container li { color: #ccc; }
+  </style>
+</head>
+<body>
+  <%- include('partials/header') %>
+
+  <div class="privacy-container">
+    <h1>Terms of Service</h1>
+    <p>Last updated: <%= new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+
+    <p>Welcome to FLICKCANVAS (flickcanvas.vercel.app). By accessing or using our website, you agree to be bound by these Terms of Service.</p>
+
+    <h2>Use of Our Service</h2>
+    <p>FLICKCANVAS provides movie information, posters, trailers, and related content sourced from The Movie Database (TMDB) for informational and entertainment purposes only. We do not host or stream copyrighted movie content ourselves.</p>
+
+    <h2>Third-Party Content</h2>
+    <p>Movie data, images, and trailers displayed on our website are provided by TMDB and other third-party APIs. We do not claim ownership of this content. All movie titles, posters, and related media are the property of their respective owners.</p>
+
+    <h2>Social Media Integration</h2>
+    <p>FLICKCANVAS automatically publishes trending movie content to our official Facebook Page and Instagram Business account. Content shared on these platforms follows the same terms outlined here.</p>
+
+    <h2>User Conduct</h2>
+    <p>You agree not to misuse our website, attempt unauthorized access to our systems, or use our service for any unlawful purpose.</p>
+
+    <h2>Limitation of Liability</h2>
+    <p>FLICKCANVAS is provided "as is" without warranties of any kind. We are not liable for any inaccuracies in movie data or third-party content displayed on our site.</p>
+
+    <h2>Changes to These Terms</h2>
+    <p>We may update these Terms of Service from time to time. Continued use of our website after changes constitutes acceptance of the updated terms.</p>
+
+    <h2>Contact Us</h2>
+    <p>If you have any questions about these Terms of Service, please contact us at: <strong>flickcanvasmovies@gmail.com</strong></p>
+  </div>
+
+  <%- include('partials/footer') %>
+</body>
+</html>

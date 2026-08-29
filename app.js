@@ -849,6 +849,13 @@ app.get("/api/cron", async (req, res) => {
 app.get("/privacy", (req, res) => {
   res.render("privacy", { hideAds: true });
 });
+app.get("/terms", (req, res) => {
+  res.render("terms", { hideAds: true });
+});
+
+app.get("/data-deletion", (req, res) => {
+  res.render("data-deletion", { hideAds: true });
+});
 // =========================
 // 404 PAGE
 // =========================
