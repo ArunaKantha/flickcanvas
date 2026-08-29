@@ -496,8 +496,19 @@ footer {
 
 .footer-logo {
     font-size: 25px;
-    font-weight: bold;
+    font-weight: 900;
+    letter-spacing: 2px;
     margin-bottom: 10px;
+}
+
+.footer-logo span {
+    font-weight: 400;
+}
+
+.footer-tagline {
+    color: #f5c518;
+    margin: 8px;
+    font-size: 14px;
 }
 
 footer p {
@@ -704,4 +715,38 @@ footer p {
 
 .hero-ad-space .ad-container {
     margin: 0 auto;
+}
+.follow-title {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.social-links {
+    margin: 15px 0;
+}
+
+.social-links a {
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.fb-link {
+    color: #1877F2;
+}
+
+.ig-link {
+    color: #E1306C;
+}
+
+.social-links a:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.divider {
+    color: #444;
+    margin: 0 8px;
 }

@@ -843,6 +843,13 @@ app.get("/api/cron", async (req, res) => {
   }
 });
 // =========================
+// PRIVACY POLICY PAGE   👈 මේ block එකයි අලුතින් add කරන්නේ
+// =========================
+
+app.get("/privacy", (req, res) => {
+  res.render("privacy", { hideAds: true });
+});
+// =========================
 // 404 PAGE
 // =========================
 

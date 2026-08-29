@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - FLICKCANVAS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .privacy-container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.7;
+      color: #eee;
+    }
+    .privacy-container h1 { margin-bottom: 10px; }
+    .privacy-container h2 { margin-top: 30px; }
+    .privacy-container p, .privacy-container li { color: #ccc; }
+  </style>
+</head>
+<body>
+  <%- include('partials/header') %>
+
+  <div class="privacy-container">
+    <h1>Privacy Policy</h1>
+    <p>Last updated: <%= new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+
+    <p>FLICKCANVAS ("we", "our", "us") operates the website flickcanvas.vercel.app. This page informs you of our policies regarding the collection, use, and disclosure of information when you use our service.</p>
+
+    <h2>Information We Collect</h2>
+    <p>Our website displays movie information, posters, and trailers sourced from The Movie Database (TMDB) API. We do not collect personal information from visitors browsing movie content on our site.</p>
+
+    <h2>Facebook & Instagram Integration</h2>
+    <p>We use the Meta Graph API to automatically publish trending movie posters and trailers to our official Facebook Page and Instagram Business account. This integration is used solely to publish content on our own social media accounts and does not collect or process personal data from Facebook or Instagram users.</p>
+
+    <h2>Third-Party Services</h2>
+    <p>We use TMDB (The Movie Database) as our data source for movie information, posters, and trailers. TMDB's own privacy policy governs their data collection practices.</p>
+
+    <h2>Cookies</h2>
+    <p>Our website may use basic cookies to improve user experience. We do not use cookies for advertising or tracking purposes beyond standard website functionality.</p>
+
+    <h2>Data Security</h2>
+    <p>We take reasonable measures to protect any information processed through our website and social media integrations.</p>
+
+    <h2>Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. Changes will be posted on this page.</p>
+
+    <h2>Contact Us</h2>
+    <p>If you have any questions about this Privacy Policy, please contact us at: <strong>[flickcanvasmovies@gmail.com]</strong></p>
+  </div>
+
+  <%- include('partials/footer') %>
+</body>
+</html>
