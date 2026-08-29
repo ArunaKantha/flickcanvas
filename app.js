@@ -787,7 +787,7 @@ app.get("/api/debug", (req, res) => {
 // FACEBOOK CRON
 // =========================
 
-app.post("/api/cron", async (req, res) => {
+app.get("/api/cron", async (req, res) => {
   try {
     const cronSecret =
       process.env.CRON_SECRET ||
