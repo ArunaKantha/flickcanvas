@@ -324,27 +324,35 @@ if (
 
   try {
     // =========================
-    // GET TRENDING MOVIE
-    // =========================
-
-    const trendingResponse = await axios.get(
-      `${TMDB_BASE_URL}/trending/movie/day`,
-      {
-        params: {
-          api_key: process.env.TMDB_API_KEY,
-          language: "en-US"
-        }
-      }
-    );
-
-    const movie = (trendingResponse.data.results || [])
-      .find(item => item.title);
-
-    if (!movie) {
-      return res.status(404).json({
-        error: "No trending movie found"
-      });
+// GET TRENDING MOVIE
+// =========================
+const trendingResponse = await axios.get(
+  `${TMDB_BASE_URL}/trending/movie/day`,
+  {
+    params: {
+      api_key: process.env.TMDB_API_KEY,
+      language: "en-US"
     }
+  }
+);
+
+const trendingMovies = (trendingResponse.data.results || [])
+  .filter(item => item.title);
+
+// Vercel Cron times:
+// 14:00 UTC = 7:30 PM Sri Lanka → Trending #1
+// 22:00 UTC = 3:30 AM Sri Lanka → Trending #2
+const currentUTCHour = new Date().getUTCHours();
+
+const movieIndex = currentUTCHour === 22 ? 1 : 0;
+
+const movie = trendingMovies[movieIndex];
+
+if (!movie) {
+  return res.status(404).json({
+    error: `No trending movie found at index ${movieIndex}`
+  });
+}
 
     const siteUrl = (
       process.env.SITE_URL ||

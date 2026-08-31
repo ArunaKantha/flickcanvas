@@ -14,8 +14,12 @@
   ],
   "crons": [
     {
-      "path": "/api/cron",
-      "schedule": "0 1 * * *"
+      "path": "/api/facebook/auto-post",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/facebook/auto-post",
+      "schedule": "0 22 * * *"
     }
   ]
 }
