@@ -14,5 +14,5 @@ jobs:
       - name: Trigger FlickCanvas Auto Post
         run: |
           curl -f -X GET \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "https://flickcanvas.vercel.app/api/facebook/auto-post"
