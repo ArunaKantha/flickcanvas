@@ -406,14 +406,6 @@ const alreadyPostedToday = posts.some(post => {
   );
 });
 
-if (alreadyPostedToday) {
-  return res.json({
-    success: true,
-    skipped: true,
-    reason: "This movie was already posted today",
-    movie: movie.title
-  });
-}
 
 // =========================
 // CREATE FACEBOOK MESSAGE
@@ -470,14 +462,33 @@ TMDB Movie ID: ${movie.id}
 // POST TO FACEBOOK
 // =========================
 
-const { postToFacebookPage } =
-  require("./facebook");
+let facebookResult = null;
 
-const result = await postToFacebookPage({
-  message,
-  link,
-  imageUrl: posterUrl
-});
+if (alreadyPostedToday) {
+  facebookResult = {
+    success: true,
+    skipped: true,
+    reason: "This movie was already posted on Facebook today",
+    movie: movie.title
+  };
+
+  console.log(
+    `Facebook duplicate skipped: ${movie.title}`
+  );
+} else {
+  const { postToFacebookPage } =
+    require("./facebook");
+
+  facebookResult = await postToFacebookPage({
+    message,
+    link,
+    imageUrl: posterUrl
+  });
+
+  console.log(
+    `Facebook posted successfully: ${movie.title}`
+  );
+}
 // =========================
 // INSTAGRAM AUTO POST
 // =========================
@@ -701,7 +712,7 @@ res.json({
   success: true,
   skipped: false,
   movie: movie.title,
-  facebook: result,
+  facebook: facebookResult,
   instagram: instagramResult
 });
 
