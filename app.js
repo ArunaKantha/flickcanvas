@@ -372,7 +372,9 @@ const pageAccessToken =
 const graphVersion =
   process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
 
-const today = new Date().toISOString().slice(0, 10);
+const today = new Date().toLocaleDateString("en-CA", {
+  timeZone: "Asia/Colombo"
+});
 
 const postsResponse = await axios.get(
   `https://graph.facebook.com/${graphVersion}/${pageId}/posts`,
@@ -396,9 +398,9 @@ const alreadyPostedToday = posts.some(post => {
     return false;
   }
 
-  const postDate = new Date(post.created_time)
-    .toISOString()
-    .slice(0, 10);
+  const postDate = new Date(post.created_time).toLocaleDateString("en-CA", {
+  timeZone: "Asia/Colombo"
+});
 
   return (
     postDate === today &&
@@ -550,9 +552,9 @@ ${link}
     const instagramMedia =
       mediaResponse.data.data || [];
 
-    const today = new Date()
-      .toISOString()
-      .slice(0, 10);
+    const today = new Date().toLocaleDateString("en-CA", {
+  timeZone: "Asia/Colombo"
+});
 
     const alreadyPostedInstagram =
       instagramMedia.some(item => {
@@ -561,9 +563,9 @@ ${link}
           return false;
         }
 
-        const postDate = new Date(item.timestamp)
-          .toISOString()
-          .slice(0, 10);
+        const postDate = new Date(item.timestamp).toLocaleDateString("en-CA", {
+  timeZone: "Asia/Colombo"
+});
 
         return (
           postDate === today &&
