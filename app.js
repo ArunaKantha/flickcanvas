@@ -402,7 +402,7 @@ const alreadyPostedToday = posts.some(post => {
 
   return (
     postDate === today &&
-    post.message.includes(`TMDB Movie ID: ${movie.id}`)
+    post.message.includes(`/movie/${movie.id}`)
   );
 });
 
@@ -451,10 +451,10 @@ ${movie.overview || "Discover this movie on FLICKCANVAS."}
 
 📌 Follow FLICKCANVAS to discover more trending movies, trailers, and movie updates every day!
 
-👉 View movie details:
+👉 Click here to Watch the Trailer & view more details:
 ${link}
 
-TMDB Movie ID: ${movie.id}
+
 
 #FLICKCANVAS #MovieOfTheDay #Movies #MovieLovers #TrendingMovies`;
 
@@ -525,10 +525,10 @@ ${movie.title}
 
 ${movie.overview || "Discover this movie on FLICKCANVAS."}
 
-👉 View movie details:
+👉 Click here to Watch the Trailer & view more details:
 ${link}
 
-TMDB Movie ID: ${movie.id}
+
 
 #FLICKCANVAS #MovieOfTheDay #Movies #MovieLovers #TrendingMovies`;
 
@@ -567,9 +567,7 @@ TMDB Movie ID: ${movie.id}
 
         return (
           postDate === today &&
-          item.caption.includes(
-            `TMDB Movie ID: ${movie.id}`
-          )
+          item.caption.includes(`/movie/${movie.id}`)
         );
       });
 
