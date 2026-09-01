@@ -1,10 +1,15 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Data Deletion Instructions - FLICKCANVAS</title>
+
   <link rel="stylesheet" href="/css/style.css">
+
   <style>
     .privacy-container {
       max-width: 800px;
@@ -13,29 +18,126 @@
       line-height: 1.7;
       color: #eee;
     }
-    .privacy-container h1 { margin-bottom: 10px; }
-    .privacy-container h2 { margin-top: 30px; }
-    .privacy-container p, .privacy-container li { color: #ccc; }
+
+    .privacy-container h1 {
+      margin-bottom: 10px;
+    }
+
+    .privacy-container h2 {
+      margin-top: 30px;
+    }
+
+    .privacy-container p,
+    .privacy-container li {
+      color: #ccc;
+    }
   </style>
+
 </head>
+
 <body>
-  <%- include('partials/header') %>
+
+<%- include('partials/header') %>
 
   <div class="privacy-container">
-    <h1>Data Deletion Instructions</h1>
-    <p>Last updated: <%= new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
 
-    <p>FLICKCANVAS does not collect or store personal data from visitors browsing our website. We do not require account creation, and we do not store any personal information from Facebook or Instagram users through our social media integration.</p>
+```
+<h1>Data Deletion Instructions</h1>
 
-    <h2>What Data We Process</h2>
-    <p>Our Facebook and Instagram integration is used solely to publish content (movie posters and trailers) to our own official pages. We do not collect, store, or process any personal data belonging to Facebook or Instagram users through this integration.</p>
+<p>
+  Last updated:
+  <%= new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }) %>
+</p>
 
-    <h2>Requesting Data Deletion</h2>
-    <p>Since we do not store personal user data, there is typically nothing to delete. However, if you believe we have inadvertently stored any information related to you and would like it removed, please contact us at:</p>
-    <p><strong>flickcanvasmovies@gmail.com</strong></p>
-    <p>We will respond to and process any valid data deletion request within 30 days.</p>
+<p>
+  FLICKCANVAS does not require visitors to create an account
+  or provide personal information to browse movie content on
+  our website.
+</p>
+
+<p>
+  We do not intentionally collect or store personal information
+  from visitors through our Facebook, Instagram, or Pinterest
+  integrations.
+</p>
+
+<h2>What Data We Process</h2>
+
+<p>
+  Our Facebook and Instagram integrations are used to publish
+  movie-related content, such as movie posters, titles,
+  ratings, descriptions, trailers, and links, to our official
+  social media accounts.
+</p>
+
+<p>
+  Our Pinterest integration may be used to create and publish
+  movie-related Pins to our official Pinterest Business account.
+</p>
+
+<p>
+  These integrations are used for publishing and managing our
+  own social media content. We do not intentionally collect or
+  store personal information belonging to Facebook, Instagram,
+  or Pinterest users through these integrations.
+</p>
+
+<h2>Requesting Data Deletion</h2>
+
+<p>
+  Because FLICKCANVAS does not intentionally store personal
+  information from visitors or social media users, there is
+  normally no personal data associated with a user that needs
+  to be deleted.
+</p>
+
+<p>
+  However, if you believe that FLICKCANVAS may have received
+  or stored personal information relating to you and you would
+  like that information deleted, you may contact us using the
+  email address below.
+</p>
+
+<p>
+  <strong>flickcanvasmovies@gmail.com</strong>
+</p>
+
+<p>
+  Please include enough information for us to understand your
+  request. We will review valid requests and take appropriate
+  action in accordance with applicable laws and our data
+  retention requirements.
+</p>
+
+<h2>Third-Party Platforms</h2>
+
+<p>
+  Facebook, Instagram, and Pinterest are independent third-party
+  platforms. If you want to delete information held by those
+  platforms, you may also need to use their respective privacy
+  and account-management tools.
+</p>
+
+<h2>Contact Us</h2>
+
+<p>
+  If you have any questions regarding data deletion, please
+  contact us at:
+</p>
+
+<p>
+  <strong>flickcanvasmovies@gmail.com</strong>
+</p>
+```
+
   </div>
 
-  <%- include('partials/footer') %>
+<%- include('partials/footer') %>
+
 </body>
+
 </html>

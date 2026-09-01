@@ -1,54 +1,242 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Terms of Service - FLICKCANVAS</title>
+
   <link rel="stylesheet" href="/css/style.css">
+
   <style>
-    .privacy-container {
+    .terms-container {
       max-width: 800px;
       margin: 40px auto;
       padding: 20px;
       line-height: 1.7;
       color: #eee;
     }
-    .privacy-container h1 { margin-bottom: 10px; }
-    .privacy-container h2 { margin-top: 30px; }
-    .privacy-container p, .privacy-container li { color: #ccc; }
+
+    .terms-container h1 {
+      margin-bottom: 10px;
+    }
+
+    .terms-container h2 {
+      margin-top: 30px;
+    }
+
+    .terms-container p,
+    .terms-container li {
+      color: #ccc;
+    }
   </style>
+
 </head>
+
 <body>
-  <%- include('partials/header') %>
 
-  <div class="privacy-container">
-    <h1>Terms of Service</h1>
-    <p>Last updated: <%= new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+<%- include('partials/header') %>
 
-    <p>Welcome to FLICKCANVAS (flickcanvas.vercel.app). By accessing or using our website, you agree to be bound by these Terms of Service.</p>
+  <div class="terms-container">
 
-    <h2>Use of Our Service</h2>
-    <p>FLICKCANVAS provides movie information, posters, trailers, and related content sourced from The Movie Database (TMDB) for informational and entertainment purposes only. We do not host or stream copyrighted movie content ourselves.</p>
+```
+<h1>Terms of Service</h1>
 
-    <h2>Third-Party Content</h2>
-    <p>Movie data, images, and trailers displayed on our website are provided by TMDB and other third-party APIs. We do not claim ownership of this content. All movie titles, posters, and related media are the property of their respective owners.</p>
+<p>
+  Last updated:
+  <%= new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }) %>
+</p>
 
-    <h2>Social Media Integration</h2>
-    <p>FLICKCANVAS automatically publishes trending movie content to our official Facebook Page and Instagram Business account. Content shared on these platforms follows the same terms outlined here.</p>
+<p>
+  Welcome to FLICKCANVAS. By accessing or using the
+  FLICKCANVAS website, you agree to comply with and be bound
+  by these Terms of Service. If you do not agree with these
+  terms, please do not use the website.
+</p>
 
-    <h2>User Conduct</h2>
-    <p>You agree not to misuse our website, attempt unauthorized access to our systems, or use our service for any unlawful purpose.</p>
+<h2>Use of the Website</h2>
 
-    <h2>Limitation of Liability</h2>
-    <p>FLICKCANVAS is provided "as is" without warranties of any kind. We are not liable for any inaccuracies in movie data or third-party content displayed on our site.</p>
+<p>
+  FLICKCANVAS provides movie-related information including
+  movie titles, posters, ratings, release dates, descriptions,
+  trailers, and other related information for informational
+  and entertainment purposes.
+</p>
 
-    <h2>Changes to These Terms</h2>
-    <p>We may update these Terms of Service from time to time. Continued use of our website after changes constitutes acceptance of the updated terms.</p>
+<p>
+  You agree to use the website only for lawful purposes and
+  in a manner that does not interfere with the operation or
+  security of the website.
+</p>
 
-    <h2>Contact Us</h2>
-    <p>If you have any questions about these Terms of Service, please contact us at: <strong>flickcanvasmovies@gmail.com</strong></p>
+<h2>Movie Information and Third-Party Content</h2>
+
+<p>
+  Movie information, posters, ratings, release dates,
+  descriptions, and other related content may be obtained
+  from third-party services, including The Movie Database
+  (TMDB).
+</p>
+
+<p>
+  FLICKCANVAS does not claim ownership of third-party
+  trademarks, movie titles, logos, posters, or other
+  copyrighted materials belonging to their respective owners.
+</p>
+
+<h2>Trailers</h2>
+
+<p>
+  FLICKCANVAS may display or link to movie trailers hosted
+  by third-party platforms. Trailers remain the property of
+  their respective copyright holders and are provided for
+  informational and promotional purposes.
+</p>
+
+<h2>External Links</h2>
+
+<p>
+  FLICKCANVAS may contain links to third-party websites,
+  platforms, or services. These external websites are not
+  controlled by FLICKCANVAS.
+</p>
+
+<p>
+  We are not responsible for the content, availability,
+  privacy practices, security, or policies of third-party
+  websites. You access external websites at your own risk
+  and should review their applicable terms and privacy
+  policies.
+</p>
+
+<h2>Social Media Integrations</h2>
+
+<p>
+  FLICKCANVAS may use third-party APIs and services to
+  automatically publish movie-related content to our official
+  social media accounts.
+</p>
+
+<p>
+  These integrations may include Facebook, Instagram, and
+  Pinterest. Published content may include movie posters,
+  titles, ratings, release information, descriptions,
+  trailer information, hashtags, and links to FLICKCANVAS.
+</p>
+
+<p>
+  We are not responsible for changes to third-party platforms,
+  API availability, account restrictions, content policies,
+  or service interruptions that may affect automated publishing.
+</p>
+
+<h2>Pinterest Integration</h2>
+
+<p>
+  FLICKCANVAS may use the Pinterest API to create, schedule,
+  and publish Pins to our official Pinterest Business account.
+</p>
+
+<p>
+  Pinterest content may include movie posters, movie titles,
+  ratings, release information, descriptions, trailer
+  information, hashtags, and links to pages on FLICKCANVAS.
+</p>
+
+<p>
+  Pinterest is an independent third-party platform. Your use
+  of Pinterest is subject to Pinterest's own terms, policies,
+  and guidelines.
+</p>
+
+<h2>Facebook and Instagram Integration</h2>
+
+<p>
+  FLICKCANVAS may use the Meta Graph API to publish movie-related
+  content to our official Facebook Page and Instagram Business
+  account.
+</p>
+
+<p>
+  Facebook and Instagram are independent third-party platforms.
+  Your use of those services is subject to their respective
+  terms, policies, and guidelines.
+</p>
+
+<h2>Intellectual Property</h2>
+
+<p>
+  The FLICKCANVAS website design, original text, branding,
+  code, and other original materials created by FLICKCANVAS
+  are protected by applicable intellectual property laws.
+</p>
+
+<p>
+  Third-party materials remain the property of their respective
+  copyright and trademark owners.
+</p>
+
+<h2>Copyright Concerns</h2>
+
+<p>
+  If you believe that content displayed on FLICKCANVAS
+  infringes your copyright or other intellectual property
+  rights, please contact us with sufficient information to
+  identify the material and your rights in that material.
+</p>
+
+<h2>Disclaimer</h2>
+
+<p>
+  FLICKCANVAS provides information on an "as is" and
+  "as available" basis. We do not guarantee that all movie
+  information is complete, accurate, current, or available
+  at all times.
+</p>
+
+<p>
+  We are not responsible for errors, interruptions,
+  temporary unavailability, or changes made by third-party
+  services.
+</p>
+
+<h2>Limitation of Liability</h2>
+
+<p>
+  To the extent permitted by applicable law, FLICKCANVAS
+  shall not be liable for any direct, indirect, incidental,
+  consequential, or other damages arising from your use of
+  or inability to use the website or third-party services
+  linked through the website.
+</p>
+
+<h2>Changes to These Terms</h2>
+
+<p>
+  We may update these Terms of Service from time to time.
+  Any changes will be posted on this page with an updated
+  "Last updated" date.
+</p>
+
+<h2>Contact Us</h2>
+
+<p>
+  If you have any questions regarding these Terms of Service,
+  please contact us at:
+  <strong>flickcanvasmovies@gmail.com</strong>
+</p>
+```
+
   </div>
 
-  <%- include('partials/footer') %>
+<%- include('partials/footer') %>
+
 </body>
+
 </html>
