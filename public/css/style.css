@@ -400,28 +400,65 @@ main > h2 {
     font-size: 13px;
 }
 
-/* ========================= MOVIE DETAILS ========================= */
+
+/* =========================
+   MOVIE DETAILS
+========================= */
+
 .movie-details {
     position: relative;
     min-height: 720px;
+    background: var(--bg);
     background-size: cover;
     background-position: center top;
     display: flex;
     align-items: center;
     padding: clamp(58px, 7vw, 100px) clamp(20px, 7vw, 108px);
     isolation: isolate;
+    overflow: hidden;
 }
 
 .movie-details::before {
     content: "";
     position: absolute;
-    inset: 0;
-    z-index: -1;
-    background:
-        linear-gradient(90deg, rgba(6,7,10,.94) 0%, rgba(6,7,10,.78) 48%, rgba(6,7,10,.66) 100%),
-        linear-gradient(0deg, var(--bg) 0%, transparent 34%);
+    inset: -15px;
+    z-index: -2;
+
+    background-image: var(--movie-backdrop);
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+
+    filter: blur(10px);
+    transform: scale(1.04);
+
     pointer-events: none;
 }
+
+.movie-details::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(6,7,10,.94) 0%,
+            rgba(6,7,10,.78) 48%,
+            rgba(6,7,10,.66) 100%
+        ),
+        linear-gradient(
+            0deg,
+            rgba(6,7,10,.96) 0%,
+            rgba(6,7,10,.25) 60%,
+            rgba(6,7,10,.55) 100%
+        );
+
+    pointer-events: none;
+}
+
+
 
 .movie-container {
     width: min(1180px, 100%);

@@ -1,16 +1,11 @@
 <%- include("partials/header") %>
+<style>
+    .movie-details {
+        --movie-backdrop: url('<%= movie.backdrop_path ? backdropBase + movie.backdrop_path : "" %>');
+    }
+</style>
 
-<section
-    class="movie-details"
-    style="
-        background-image:
-        linear-gradient(
-            rgba(0,0,0,.8),
-            rgba(0,0,0,.95)
-        ),
-        url('<%= movie.backdrop_path ? backdropBase + movie.backdrop_path : "" %>');
-    "
->
+<section class="movie-details">
     <div class="movie-container">
         <div class="movie-poster">
             <% if (movie.poster_path) { %>
