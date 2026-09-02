@@ -527,9 +527,8 @@ ${movie.title}
 
 ${movie.overview || "Discover this movie on FLICKCANVAS."}
 
-👉 Click here to Watch the Trailer & view more details:
-${link}
-
+👉 Watch the Trailer & view more details:
+🔗 Link in Bio
 
 
 #FLICKCANVAS #MovieOfTheDay #Movies #MovieLovers #TrendingMovies`;
