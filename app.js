@@ -403,9 +403,10 @@ const alreadyPostedToday = posts.some(post => {
 });
 
   return (
-    postDate === today &&
-    post.message.includes(`/movie/${movie.id}`)
-  );
+  postDate === today &&
+  post.message.includes("🎬 FLICKCANVAS Movie of the Day") &&
+  post.message.includes(movie.title)
+);
 });
 
 
@@ -453,8 +454,7 @@ ${movie.overview || "Discover this movie on FLICKCANVAS."}
 
 📌 Follow FLICKCANVAS to discover more trending movies, trailers, and movie updates every day!
 
-👉 Click here to Watch the Trailer & view more details:
-${link}
+👇 Check the comments below for the movie link!
 
 
 
@@ -527,11 +527,19 @@ ${movie.title}
 
 ${movie.overview || "Discover this movie on FLICKCANVAS."}
 
-👉 Watch the Trailer & view more details:
-🔗 Link in Bio
+💬 Would you watch this movie? Tell us what you think! 👇
+
+❤️ Like this post if you love discovering new movies.
+
+📌 Follow FLICKCANVAS to discover more trending movies, trailers, and movie updates every day!
+
+👇 Check the comments below for the movie link!
 
 
 #FLICKCANVAS #MovieOfTheDay #Movies #MovieLovers #TrendingMovies`;
+
+
+
 
     // =========================
     // CHECK TODAY'S INSTAGRAM POSTS
@@ -567,9 +575,10 @@ ${movie.overview || "Discover this movie on FLICKCANVAS."}
 });
 
         return (
-          postDate === today &&
-          item.caption.includes(`/movie/${movie.id}`)
-        );
+  postDate === today &&
+  item.caption.includes("🎬 FLICKCANVAS Movie of the Day") &&
+  item.caption.includes(movie.title)
+);
       });
 
     if (alreadyPostedInstagram) {
@@ -676,14 +685,37 @@ ${movie.overview || "Discover this movie on FLICKCANVAS."}
           }
         }
       );
+      const instagramMediaId = publishResponse.data.id;
+
+// =========================
+// POST FIRST COMMENT
+// =========================
+
+const instagramComment =
+  `🎬 Watch the Trailer & view more details:\n\n${link}`;
+
+const commentResponse = await axios.post(
+  `https://graph.facebook.com/${instagramGraphVersion}/${instagramMediaId}/comments`,
+  null,
+  {
+    params: {
+      message: instagramComment,
+      access_token: instagramAccessToken
+    }
+  }
+);
+
+console.log(
+  `Instagram first comment posted successfully: ${movie.title}`
+);
 
       instagramResult = {
-        success: true,
-        skipped: false,
-        movie: movie.title,
-        instagramMediaId:
-          publishResponse.data.id
-      };
+  success: true,
+  skipped: false,
+  movie: movie.title,
+  instagramMediaId: instagramMediaId,
+  instagramCommentId: commentResponse.data.id
+};
 
       console.log(
         `Instagram posted successfully: ${movie.title}`
