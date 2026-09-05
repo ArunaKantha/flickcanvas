@@ -58,7 +58,7 @@ async function postToFacebookPage({ message, link, imageUrl }) {
   // POST LINK AS FIRST COMMENT
   // =========================
 
-  const postId = result.post_id || result.id;
+  const postId = result.id;
 
   if (postId && link) {
   try {
