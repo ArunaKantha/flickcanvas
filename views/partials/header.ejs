@@ -4,7 +4,93 @@
     <meta charset="UTF-8">
     <meta name="p:domain_verify" content="3ae82d96100528f8ab5e722a475fe041">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FLICKCANVAS - Your Window to the World of Movies</title>
+    <title>
+    <%= typeof movie !== 'undefined' && movie.title
+        ? movie.title + " - FLICKCANVAS"
+        : "FLICKCANVAS - Your Window to the World of Movies" %>
+</title>
+<% if (typeof movie !== 'undefined' && movie.title) { %>
+
+    <meta
+        name="description"
+        content="<%= movie.overview
+            ? movie.overview.substring(0, 160)
+            : 'Watch movie trailers, view movie details, ratings, cast and streaming information on FLICKCANVAS.' %>"
+    >
+
+    <link
+        rel="canonical"
+        href="https://flickcanvas.vercel.app/movie/<%= movie.id %>"
+    >
+
+<% } else { %>
+
+    <meta
+        name="description"
+        content="Discover movies, trailers, ratings, cast information and streaming options on FLICKCANVAS."
+    >
+
+    <link
+        rel="canonical"
+        href="https://flickcanvas.vercel.app/"
+    >
+
+<% } %>
+<% if (typeof movie !== 'undefined' && movie.title) { %>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="video.movie">
+    <meta property="og:title" content="<%= movie.title %> - FLICKCANVAS">
+
+    <meta
+        property="og:description"
+        content="<%= movie.overview
+            ? movie.overview.substring(0, 160)
+            : 'Movie details, trailer, cast and streaming information on FLICKCANVAS.' %>"
+    >
+
+    <meta
+        property="og:url"
+        content="https://flickcanvas.vercel.app/movie/<%= movie.id %>"
+    >
+
+    <% if (movie.poster_path) { %>
+        <meta
+            property="og:image"
+            content="<%= imageBase + movie.poster_path %>"
+        >
+    <% } %>
+
+    <meta property="og:site_name" content="FLICKCANVAS">
+
+<% } %>
+<% if (typeof movie !== 'undefined' && movie.title) { %>
+
+    <!-- Movie Structured Data -->
+    <script type="application/ld+json">
+    <%- JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Movie",
+        "name": movie.title,
+        "url": "https://flickcanvas.vercel.app/movie/" + movie.id,
+        "description": movie.overview || "",
+        "image": movie.poster_path
+            ? imageBase + movie.poster_path
+            : undefined,
+        "dateCreated": movie.release_date || undefined,
+        "aggregateRating": movie.vote_average
+            ? {
+                "@type": "AggregateRating",
+                "ratingValue": Number(movie.vote_average).toFixed(1),
+                "bestRating": "10",
+                "worstRating": "0",
+                "ratingCount": movie.vote_count || 1
+              }
+            : undefined
+    }) %>
+    </script>
+
+<% } %>
 
     <!-- Adsterra -->
     <% if (typeof hideAds === 'undefined' || !hideAds) { %>

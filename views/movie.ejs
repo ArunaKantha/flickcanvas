@@ -9,7 +9,13 @@
     <div class="movie-container">
         <div class="movie-poster">
             <% if (movie.poster_path) { %>
-                <img src="<%= imageBase + movie.poster_path %>" alt="<%= movie.title %>">
+                <img
+    src="<%= imageBase + movie.poster_path %>"
+    alt="<%= movie.title %> movie poster"
+    loading="lazy"
+    width="500"
+    height="750"
+>
             <% } %>
         </div>
 
@@ -31,8 +37,13 @@
                     <% }) %>
                 </div>
             <% } %>
-        <h2>📝 Overview</h2>
-            <p><%= movie.overview || "No overview available." %></p>
+        <section class="movie-overview">
+    <h2>📝 <%= movie.title %> - Overview</h2>
+
+    <p>
+        <%= movie.overview || "No overview available." %>
+    </p>
+</section>
             
 
             <div class="buttons">
@@ -88,9 +99,12 @@
 
                     <% if (person.profile_path) { %>
                         <img
-                            src="<%= imageBase + person.profile_path %>"
-                            alt="<%= person.name %>"
-                        >
+    src="<%= imageBase + person.profile_path %>"
+    alt="<%= person.name %> as <%= person.character || 'cast member' %>"
+    loading="lazy"
+    width="185"
+    height="278"
+>
                     <% } %>
 
                     <div class="cast-info">
