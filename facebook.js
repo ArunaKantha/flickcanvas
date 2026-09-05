@@ -49,6 +49,10 @@ async function postToFacebookPage({ message, link, imageUrl }) {
   }
 
   const result = response.data;
+  console.log(
+  "FACEBOOK PHOTO RESPONSE:",
+  JSON.stringify(result, null, 2)
+);
 
   // =========================
   // POST LINK AS FIRST COMMENT
