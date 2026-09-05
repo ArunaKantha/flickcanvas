@@ -128,6 +128,75 @@ app.get("/search", async (req, res) => {
     res.redirect("/");
   }
 });
+// =========================
+// DYNAMIC SITEMAP
+// =========================
+
+app.get("/sitemap.xml", async (req, res) => {
+  try {
+    const [popular, trending, nowPlaying] = await Promise.all([
+      axios.get(`${TMDB_BASE_URL}/movie/popular`, {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          language: "en-US",
+          page: 1
+        }
+      }),
+
+      axios.get(`${TMDB_BASE_URL}/trending/movie/week`, {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          language: "en-US"
+        }
+      }),
+
+      axios.get(`${TMDB_BASE_URL}/movie/now_playing`, {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          language: "en-US",
+          page: 1
+        }
+      })
+    ]);
+
+    const movies = [
+      ...(popular.data.results || []),
+      ...(trending.data.results || []),
+      ...(nowPlaying.data.results || [])
+    ];
+
+    // Remove duplicate movie IDs
+    const uniqueMovies = Array.from(
+      new Map(movies.map(movie => [movie.id, movie])).values()
+    );
+
+    const urls = [
+      "https://flickcanvas.vercel.app/",
+      ...uniqueMovies.map(movie =>
+        `https://flickcanvas.vercel.app/movie/${movie.id}`
+      )
+    ];
+
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.map(url => `
+  <url>
+    <loc>${url}</loc>
+  </url>`).join("")}
+</urlset>`;
+
+    res.set("Content-Type", "application/xml");
+    res.send(sitemap);
+
+  } catch (error) {
+    console.error(
+      "SITEMAP ERROR:",
+      error.response?.data || error.message
+    );
+
+    res.status(500).send("Sitemap generation failed");
+  }
+});
 
 // =========================
 // MOVIE DETAILS
