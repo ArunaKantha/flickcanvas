@@ -57,6 +57,7 @@ async function postToFacebookPage({ message, link, imageUrl }) {
   const postId = result.post_id || result.id;
 
   if (postId && link) {
+  try {
     await axios.post(
       `https://graph.facebook.com/${graphVersion}/${postId}/comments`,
       null,
@@ -67,7 +68,15 @@ async function postToFacebookPage({ message, link, imageUrl }) {
         }
       }
     );
+
+    console.log("Facebook first comment posted successfully");
+  } catch (commentError) {
+    console.error(
+      "Facebook first comment failed:",
+      commentError.response?.data || commentError.message
+    );
   }
+}
 
   return result;
 }
