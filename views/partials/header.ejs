@@ -92,6 +92,21 @@
 
 <% } %>
 
+<% if (typeof movie === 'undefined') { %>
+
+<script type="application/ld+json">
+<%- JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "FLICKCANVAS",
+    "url": "https://flickcanvas.vercel.app/",
+    "description": "Discover movies, trailers, ratings, cast information and streaming options on FLICKCANVAS."
+}) %>
+</script>
+
+<% } %>
+
+
     <!-- Adsterra -->
     <% if (typeof hideAds === 'undefined' || !hideAds) { %>
         <script src="https://clocksuch.com/57/cb/d2/57cbd27040d388c09c6d3d3c10e5d525.js"></script>

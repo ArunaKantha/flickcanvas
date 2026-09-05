@@ -4,7 +4,7 @@
 
     <img
         src="/image/Firefly.png"
-        alt="FLICKCANVAS"
+        alt="FLICKCANVAS - Movies, Trailers and Movie Information"
         class="hero-banner-image"
     >
 
@@ -22,6 +22,7 @@
 
 
 <main id="movies">
+    <h1>Movies, Trailers & Movie Information</h1>
 
     <% if (searchQuery) { %>
 
@@ -50,7 +51,7 @@
 
                         <img
                             src="<%= imageBase + movie.poster_path %>"
-                            alt="<%= movie.title %>"
+                            alt="<%= movie.title %> movie poster"
                         >
 
                         <div class="movie-info">
@@ -93,7 +94,7 @@
 
                         <img
                             src="<%= imageBase + movie.poster_path %>"
-                            alt="<%= movie.title %>"
+                            alt="<%= movie.title %> movie poster"
                         >
 
                     <% } else { %>
