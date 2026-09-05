@@ -475,7 +475,8 @@ main > h2 {
 }
 
 .movie-poster img {
-    width: clamp(245px, 24vw, 330px);
+    width: clamp(220px, 22vw, 280px);
+    height: auto;
     display: block;
     border-radius: 18px;
     border: 1px solid rgba(255,255,255,.13);

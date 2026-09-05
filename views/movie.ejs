@@ -25,7 +25,7 @@
             
 
             <div class="movie-meta">
-                <span>⭐ <strong>Rating</strong> <%= Number(movie.vote_average || 0).toFixed(1) %></span>
+                <span>⭐ <strong>Rating</strong> <%= Number(movie.vote_average || 0).toFixed(1) %>/10</span>
                 <span>📅 <strong>Release Date</strong> <%= movie.release_date || "N/A" %></span>
                 <span>⏱️ <strong>Runtime</strong> <%= movie.runtime ? movie.runtime + " min" : "N/A" %></span>
             </div>
