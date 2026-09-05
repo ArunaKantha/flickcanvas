@@ -134,36 +134,49 @@ app.get("/search", async (req, res) => {
 
 app.get("/sitemap.xml", async (req, res) => {
   try {
-    const [popular, trending, nowPlaying] = await Promise.all([
-      axios.get(`${TMDB_BASE_URL}/movie/popular`, {
-        params: {
-          api_key: process.env.TMDB_API_KEY,
-          language: "en-US",
-          page: 1
-        }
-      }),
+    const requests = [];
 
+    // Popular movies - pages 1 to 3
+    for (let page = 1; page <= 3; page++) {
+      requests.push(
+        axios.get(`${TMDB_BASE_URL}/movie/popular`, {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: "en-US",
+            page
+          }
+        })
+      );
+    }
+
+    // Trending movies - weekly
+    requests.push(
       axios.get(`${TMDB_BASE_URL}/trending/movie/week`, {
         params: {
           api_key: process.env.TMDB_API_KEY,
           language: "en-US"
         }
-      }),
-
-      axios.get(`${TMDB_BASE_URL}/movie/now_playing`, {
-        params: {
-          api_key: process.env.TMDB_API_KEY,
-          language: "en-US",
-          page: 1
-        }
       })
-    ]);
+    );
 
-    const movies = [
-      ...(popular.data.results || []),
-      ...(trending.data.results || []),
-      ...(nowPlaying.data.results || [])
-    ];
+    // Now playing movies - pages 1 to 3
+    for (let page = 1; page <= 3; page++) {
+      requests.push(
+        axios.get(`${TMDB_BASE_URL}/movie/now_playing`, {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: "en-US",
+            page
+          }
+        })
+      );
+    }
+
+    const responses = await Promise.all(requests);
+
+    const movies = responses.flatMap(
+      response => response.data.results || []
+    );
 
     // Remove duplicate movie IDs
     const uniqueMovies = Array.from(
@@ -172,8 +185,8 @@ app.get("/sitemap.xml", async (req, res) => {
 
     const urls = [
       "https://flickcanvas.vercel.app/",
-      ...uniqueMovies.map(movie =>
-        `https://flickcanvas.vercel.app/movie/${movie.id}`
+      ...uniqueMovies.map(
+        movie => `https://flickcanvas.vercel.app/movie/${movie.id}`
       )
     ];
 

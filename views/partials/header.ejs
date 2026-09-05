@@ -1,116 +1,189 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
     <%
     const pageImageBase =
         typeof imageBase !== 'undefined'
             ? imageBase
             : 'https://image.tmdb.org/t/p/w500';
-%>
-    <meta charset="UTF-8">
-    <meta name="p:domain_verify" content="3ae82d96100528f8ab5e722a475fe041">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>
-    <%= typeof movie !== 'undefined' && movie.title
-        ? movie.title + " - FLICKCANVAS"
-        : "FLICKCANVAS - Your Window to the World of Movies" %>
-</title>
-<% if (typeof movie !== 'undefined' && movie.title) { %>
 
-    <!-- Movie Structured Data -->
-    <script type="application/ld+json">
-    <%- JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "Movie",
+    const siteUrl = "https://flickcanvas.vercel.app";
 
-        "name": movie.title,
+    const isMoviePage =
+        typeof movie !== 'undefined' && movie.title;
 
-        "url": "https://flickcanvas.vercel.app/movie/" + movie.id,
+    const canonicalUrl = isMoviePage
+        ? `${siteUrl}/movie/${movie.id}`
+        : siteUrl;
 
-        "description": movie.overview || "",
+    const metaDescription = isMoviePage
+        ? `${movie.title} - rating, release date, overview, cast, trailer and where to watch on FLICKCANVAS.`
+        : "Discover movies, trailers, ratings, cast information and streaming options on FLICKCANVAS.";
 
-        "image": movie.poster_path
+    const socialImage =
+        isMoviePage && movie.poster_path
             ? pageImageBase + movie.poster_path
-            : undefined,
+            : "";
+    %>
 
-        "datePublished": movie.release_date || undefined,
+    <meta charset="UTF-8">
 
-        "genre": movie.genres && movie.genres.length
-            ? movie.genres.map(genre => genre.name)
-            : undefined,
+    <meta name="p:domain_verify" content="3ae82d96100528f8ab5e722a475fe041">
 
-        "duration": movie.runtime
-            ? "PT" + movie.runtime + "M"
-            : undefined,
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        "aggregateRating": movie.vote_average && movie.vote_count
-            ? {
-                "@type": "AggregateRating",
-                "ratingValue": Number(movie.vote_average).toFixed(1),
-                "bestRating": "10",
-                "worstRating": "0",
-                "ratingCount": movie.vote_count
-              }
-            : undefined,
+    <title>
+        <%= isMoviePage
+            ? movie.title + " - FLICKCANVAS"
+            : "FLICKCANVAS - Your Window to the World of Movies" %>
+    </title>
 
-        "director": movie.credits?.crew
-            ?.filter(person => person.job === "Director")
-            .map(person => ({
-                "@type": "Person",
-                "name": person.name
-            })),
+    <!-- SEO Meta Description -->
+    <meta name="description" content="<%= metaDescription %>">
 
-        "actor": movie.credits?.cast
-            ?.slice(0, 10)
-            .map(person => ({
-                "@type": "Person",
-                "name": person.name
-            }))
+    <!-- Canonical URL -->
+    <link rel="canonical" href="<%= canonicalUrl %>">
 
-    }) %>
-    </script>
+    <!-- Open Graph -->
+    <meta property="og:type" content="<%= isMoviePage ? 'video.movie' : 'website' %>">
 
-<% } %>
+    <meta
+        property="og:title"
+        content="<%= isMoviePage
+            ? movie.title + ' - FLICKCANVAS'
+            : 'FLICKCANVAS - Your Window to the World of Movies' %>"
+    >
 
-<% if (typeof movie === 'undefined') { %>
+    <meta
+        property="og:description"
+        content="<%= metaDescription %>"
+    >
 
-<script type="application/ld+json">
-<%- JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "FLICKCANVAS",
-    "url": "https://flickcanvas.vercel.app/",
-    "description": "Discover movies, trailers, ratings, cast information and streaming options on FLICKCANVAS."
-}) %>
-</script>
+    <meta property="og:url" content="<%= canonicalUrl %>">
 
-<% } %>
+    <meta property="og:site_name" content="FLICKCANVAS">
+
+    <% if (socialImage) { %>
+        <meta property="og:image" content="<%= socialImage %>">
+    <% } %>
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+
+    <meta
+        name="twitter:title"
+        content="<%= isMoviePage
+            ? movie.title + ' - FLICKCANVAS'
+            : 'FLICKCANVAS - Your Window to the World of Movies' %>"
+    >
+
+    <meta
+        name="twitter:description"
+        content="<%= metaDescription %>"
+    >
+
+    <% if (socialImage) { %>
+        <meta name="twitter:image" content="<%= socialImage %>">
+    <% } %>
+
+
+    <% if (isMoviePage) { %>
+
+        <!-- Movie Structured Data -->
+        <script type="application/ld+json">
+        <%- JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Movie",
+            "name": movie.title,
+            "url": "https://flickcanvas.vercel.app/movie/" + movie.id,
+            "description": movie.overview || "",
+            "image": movie.poster_path
+                ? pageImageBase + movie.poster_path
+                : undefined,
+            "datePublished": movie.release_date || undefined,
+            "genre": movie.genres && movie.genres.length
+                ? movie.genres.map(genre => genre.name)
+                : undefined,
+            "duration": movie.runtime
+                ? "PT" + movie.runtime + "M"
+                : undefined,
+            "aggregateRating": movie.vote_average && movie.vote_count
+                ? {
+                    "@type": "AggregateRating",
+                    "ratingValue": Number(movie.vote_average).toFixed(1),
+                    "bestRating": "10",
+                    "worstRating": "0",
+                    "ratingCount": movie.vote_count
+                  }
+                : undefined,
+            "director": movie.credits?.crew
+                ?.filter(person => person.job === "Director")
+                .map(person => ({
+                    "@type": "Person",
+                    "name": person.name
+                })),
+            "actor": movie.credits?.cast
+                ?.slice(0, 10)
+                .map(person => ({
+                    "@type": "Person",
+                    "name": person.name
+                }))
+        }) %>
+        </script>
+
+    <% } %>
+
+
+    <% if (typeof movie === 'undefined') { %>
+
+        <script type="application/ld+json">
+        <%- JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "FLICKCANVAS",
+            "url": "https://flickcanvas.vercel.app/",
+            "description": "Discover movies, trailers, ratings, cast information and streaming options on FLICKCANVAS."
+        }) %>
+        </script>
+
+    <% } %>
 
 
     <!-- Adsterra -->
     <% if (typeof hideAds === 'undefined' || !hideAds) { %>
+
         <script src="https://clocksuch.com/57/cb/d2/57cbd27040d388c09c6d3d3c10e5d525.js"></script>
+
     <% } %>
 
     <link rel="stylesheet" href="/css/style.css">
 
 </head>
+
 <body>
 
 <header class="navbar">
+
     <a href="/" class="logo">
         FLICK<span>CANVAS</span>
     </a>
-    
+
     <form action="/search" method="GET" class="search">
-        <input 
-            type="text" 
-            name="q" 
-            placeholder="Search movies..." 
+
+        <input
+            type="text"
+            name="q"
+            placeholder="Search movies..."
             required
         >
+
         <button type="submit">
             🔍
         </button>
+
     </form>
+
 </header>
