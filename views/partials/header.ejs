@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <%
+    const pageImageBase =
+        typeof imageBase !== 'undefined'
+            ? imageBase
+            : 'https://image.tmdb.org/t/p/w500';
+%>
     <meta charset="UTF-8">
     <meta name="p:domain_verify" content="3ae82d96100528f8ab5e722a475fe041">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,7 +30,7 @@
         "description": movie.overview || "",
 
         "image": movie.poster_path
-            ? imageBase + movie.poster_path
+            ? pageImageBase + movie.poster_path
             : undefined,
 
         "datePublished": movie.release_date || undefined,

@@ -339,13 +339,16 @@ app.get("/watch/:id", async (req, res) => {
 
     const videos = videoResponse.data.results || [];
 
-    console.log("WATCH MOVIE:", movieResponse.data.title);
-    console.log("VIDEOS FOUND:", videos.length);
+const movie = movieResponse.data;
 
-    res.render("watch", {
-      movie: movieResponse.data,
-      videos: videos
-    });
+console.log("WATCH MOVIE:", movie.title);
+console.log("VIDEOS FOUND:", videos.length);
+
+res.render("watch", {
+    movie,
+    videos,
+    imageBase: IMAGE_BASE_URL
+});
 
   } catch (error) {
     console.error(
