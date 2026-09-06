@@ -448,7 +448,7 @@ if (!movie) {
     const link = `${siteUrl}/movie/${movie.id}`;
 
     // =========================
-// CHECK TODAY'S FACEBOOK POSTS
+// CHECK FACEBOOK POSTS - 7 DAY COOLDOWN
 // =========================
 
 const pageId = process.env.FACEBOOK_PAGE_ID;
@@ -458,9 +458,13 @@ const pageAccessToken =
 const graphVersion =
   process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
 
-const today = new Date().toLocaleDateString("en-CA", {
-  timeZone: "Asia/Colombo"
-});
+// Get current time in Sri Lanka
+const now = new Date();
+
+// 7 days ago
+const sevenDaysAgo = new Date(
+  now.getTime() - 7 * 24 * 60 * 60 * 1000
+);
 
 const postsResponse = await axios.get(
   `https://graph.facebook.com/${graphVersion}/${pageId}/posts`,
@@ -476,23 +480,21 @@ const postsResponse = await axios.get(
 const posts = postsResponse.data.data || [];
 
 // =========================
-// DUPLICATE CHECK
+// DUPLICATE CHECK - 7 DAYS
 // =========================
 
-const alreadyPostedToday = posts.some(post => {
+const alreadyPostedWithin7Days = posts.some(post => {
   if (!post.message || !post.created_time) {
     return false;
   }
 
-  const postDate = new Date(post.created_time).toLocaleDateString("en-CA", {
-  timeZone: "Asia/Colombo"
-});
+  const postDate = new Date(post.created_time);
 
   return (
-  postDate === today &&
-  post.message.includes("🎬 FLICKCANVAS Movie of the Day") &&
-  post.message.includes(movie.title)
-);
+    postDate >= sevenDaysAgo &&
+    post.message.includes("🎬 FLICKCANVAS Movie of the Day") &&
+    post.message.includes(movie.title)
+  );
 });
 
 
@@ -551,13 +553,13 @@ ${movie.overview || "Discover this movie on FLICKCANVAS."}
 // =========================
 
 let facebookResult = null;
-const forceFacebookTest = true;
+const forceFacebookTest = false;
 
-if (alreadyPostedToday && !forceFacebookTest) {
+if (alreadyPostedWithin7Days && !forceFacebookTest) {
   facebookResult = {
     success: true,
     skipped: true,
-    reason: "This movie was already posted on Facebook today",
+    reason: "This movie was posted on Facebook within the last 7 days",
     movie: movie.title
   };
 
@@ -629,8 +631,8 @@ ${movie.overview || "Discover this movie on FLICKCANVAS."}
 
 
     // =========================
-    // CHECK TODAY'S INSTAGRAM POSTS
-    // =========================
+// CHECK INSTAGRAM POSTS - 7 DAY COOLDOWN
+// =========================
 
     const mediaResponse = await axios.get(
       `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
@@ -646,34 +648,38 @@ ${movie.overview || "Discover this movie on FLICKCANVAS."}
     const instagramMedia =
       mediaResponse.data.data || [];
 
-    const today = new Date().toLocaleDateString("en-CA", {
-  timeZone: "Asia/Colombo"
-});
+    // =========================
+// CHECK INSTAGRAM POSTS - 7 DAY COOLDOWN
+// =========================
 
-    const alreadyPostedInstagram =
-      instagramMedia.some(item => {
+const now = new Date();
 
-        if (!item.caption || !item.timestamp) {
-          return false;
-        }
-
-        const postDate = new Date(item.timestamp).toLocaleDateString("en-CA", {
-  timeZone: "Asia/Colombo"
-});
-
-        return (
-  postDate === today &&
-  item.caption.includes("🎬 FLICKCANVAS Movie of the Day") &&
-  item.caption.includes(movie.title)
+const sevenDaysAgo = new Date(
+  now.getTime() - 7 * 24 * 60 * 60 * 1000
 );
-      });
+
+const alreadyPostedInstagram =
+  instagramMedia.some(item => {
+
+    if (!item.caption || !item.timestamp) {
+      return false;
+    }
+
+    const postDate = new Date(item.timestamp);
+
+    return (
+      postDate >= sevenDaysAgo &&
+      item.caption.includes("🎬 FLICKCANVAS Movie of the Day") &&
+      item.caption.includes(movie.title)
+    );
+  });
 
     if (alreadyPostedInstagram) {
 
       instagramResult = {
         success: true,
         skipped: true,
-        reason: "This movie was already posted on Instagram today",
+        reason: "This movie was posted on Instagram within the last 7 days",
         movie: movie.title
       };
 
