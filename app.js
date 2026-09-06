@@ -409,36 +409,321 @@ if (
 
   try {
     // =========================
-// GET TRENDING MOVIE
+// MOVIE SELECTION
 // =========================
-const trendingResponse = await axios.get(
-  `${TMDB_BASE_URL}/trending/movie/day`,
-  {
-    params: {
-      api_key: process.env.TMDB_API_KEY,
-      language: "en-US"
+
+// Vercel / GitHub Actions times:
+// 14:00 UTC = 7:30 PM Sri Lanka → Trending #1
+// 22:00 UTC = 3:30 AM Sri Lanka → Movie Pick
+
+const currentUTCHour = new Date().getUTCHour();
+
+const isMoviePick = currentUTCHour === 22;
+
+let movie;
+
+if (!isMoviePick) {
+
+  // =========================
+  // TRENDING MOVIE #1
+  // =========================
+
+  const trendingResponse = await axios.get(
+    `${TMDB_BASE_URL}/trending/movie/day`,
+    {
+      params: {
+        api_key: process.env.TMDB_API_KEY,
+        language: "en-US"
+      }
+    }
+  );
+
+  const trendingMovies =
+    (trendingResponse.data.results || [])
+      .filter(item =>
+        item.id &&
+        item.title &&
+        item.poster_path
+      );
+
+  movie = trendingMovies[0];
+
+} else {
+
+  // =========================
+  // MOVIE PICK
+  // Non-trending + 7-day cooldown
+  // =========================
+
+  // =========================
+  // GET TRENDING MOVIES
+  // =========================
+
+  const trendingResponse = await axios.get(
+    `${TMDB_BASE_URL}/trending/movie/day`,
+    {
+      params: {
+        api_key: process.env.TMDB_API_KEY,
+        language: "en-US"
+      }
+    }
+  );
+
+  const trendingMovies =
+    (trendingResponse.data.results || [])
+      .filter(item => item.id);
+
+  const trendingIds =
+    new Set(
+      trendingMovies.map(item => item.id)
+    );
+
+  // =========================
+  // GET FACEBOOK POSTS
+  // =========================
+
+  const pageId =
+    process.env.FACEBOOK_PAGE_ID;
+
+  const pageAccessToken =
+    process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+
+  const graphVersion =
+    process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
+
+  const now = new Date();
+
+  const sevenDaysAgo = new Date(
+    now.getTime() -
+    7 * 24 * 60 * 60 * 1000
+  );
+
+  let facebookPosts = [];
+
+  if (pageId && pageAccessToken) {
+
+    try {
+
+      const postsResponse = await axios.get(
+        `https://graph.facebook.com/${graphVersion}/${pageId}/posts`,
+        {
+          params: {
+            fields: "id,message,created_time",
+            limit: 100,
+            access_token: pageAccessToken
+          }
+        }
+      );
+
+      facebookPosts =
+        postsResponse.data.data || [];
+
+    } catch (facebookHistoryError) {
+
+      console.error(
+        "Could not read Facebook post history:",
+        facebookHistoryError.response?.data ||
+        facebookHistoryError.message
+      );
     }
   }
-);
 
-const trendingMovies = (trendingResponse.data.results || [])
-  .filter(item => item.title);
+  // =========================
+  // GET INSTAGRAM POSTS
+  // =========================
 
-// Vercel Cron times:
-// 14:00 UTC = 7:30 PM Sri Lanka → Trending #1
-// 22:00 UTC = 3:30 AM Sri Lanka → Trending #2
-const currentUTCHour = new Date().getUTCHours();
+  const instagramAccountId =
+    process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
 
-const movieIndex = currentUTCHour === 22 ? 1 : 0;
+  const instagramAccessToken =
+    process.env.INSTAGRAM_ACCESS_TOKEN;
 
-const movie = trendingMovies[movieIndex];
+  const instagramGraphVersion =
+    process.env.INSTAGRAM_GRAPH_VERSION || "v26.0";
 
+  let instagramMedia = [];
+
+  if (
+    instagramAccountId &&
+    instagramAccessToken
+  ) {
+
+    try {
+
+      const mediaResponse = await axios.get(
+        `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
+        {
+          params: {
+            fields: "id,caption,timestamp,media_type",
+            limit: 100,
+            access_token: instagramAccessToken
+          }
+        }
+      );
+
+      instagramMedia =
+        mediaResponse.data.data || [];
+
+    } catch (instagramHistoryError) {
+
+      console.error(
+        "Could not read Instagram post history:",
+        instagramHistoryError.response?.data ||
+        instagramHistoryError.message
+      );
+    }
+  }
+
+  // =========================
+  // FIND MOVIES POSTED
+  // WITHIN LAST 7 DAYS
+  // =========================
+
+  const recentlyPostedTitles =
+    new Set();
+
+  // Facebook
+  for (const post of facebookPosts) {
+
+    if (
+      !post.message ||
+      !post.created_time
+    ) {
+      continue;
+    }
+
+    const postDate =
+      new Date(post.created_time);
+
+    if (
+      postDate >= sevenDaysAgo &&
+      post.message.includes("FLICKCANVAS")
+    ) {
+      recentlyPostedTitles.add(
+        post.message
+      );
+    }
+  }
+
+  // Instagram
+  for (const item of instagramMedia) {
+
+    if (
+      !item.caption ||
+      !item.timestamp
+    ) {
+      continue;
+    }
+
+    const postDate =
+      new Date(item.timestamp);
+
+    if (
+      postDate >= sevenDaysAgo &&
+      item.caption.includes("FLICKCANVAS")
+    ) {
+      recentlyPostedTitles.add(
+        item.caption
+      );
+    }
+  }
+
+  // =========================
+  // GET POPULAR MOVIES
+  // =========================
+
+  const popularMovies = [];
+
+  for (let page = 1; page <= 3; page++) {
+
+    const response = await axios.get(
+      `${TMDB_BASE_URL}/movie/popular`,
+      {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          language: "en-US",
+          page
+        }
+      }
+    );
+
+    popularMovies.push(
+      ...(response.data.results || [])
+    );
+  }
+
+  // =========================
+  // FILTER MOVIE PICK
+  // =========================
+
+  const candidates =
+    popularMovies.filter(item => {
+
+      if (
+        !item.id ||
+        !item.title ||
+        !item.poster_path ||
+        !item.overview
+      ) {
+        return false;
+      }
+
+      // Remove today's trending movies
+      if (trendingIds.has(item.id)) {
+        return false;
+      }
+
+      // Quality filter
+      if (
+        Number(item.vote_average || 0) < 6.5 ||
+        Number(item.vote_count || 0) < 100
+      ) {
+        return false;
+      }
+
+      // Remove movies posted within 7 days
+      for (const postText of recentlyPostedTitles) {
+
+        if (
+          postText.includes(item.title)
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+  if (!candidates.length) {
+    throw new Error(
+      "No suitable Movie Pick found after 7-day cooldown filter"
+    );
+  }
+
+  // =========================
+  // RANDOM MOVIE PICK
+  // =========================
+
+  movie =
+    candidates[
+      Math.floor(
+        Math.random() * candidates.length
+      )
+    ];
+}
+
+// =========================
+// FINAL MOVIE CHECK
+// =========================
 
 if (!movie) {
-  return res.status(404).json({
-    error: `No trending movie found at index ${movieIndex}`
-  });
+  throw new Error(
+    "Movie selection failed"
+  );
 }
+
+
+
 
     const siteUrl = (
       process.env.SITE_URL ||
@@ -458,7 +743,7 @@ const pageAccessToken =
 const graphVersion =
   process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
 
-// Get current time in Sri Lanka
+// Current time
 const now = new Date();
 
 // 7 days ago
@@ -484,6 +769,7 @@ const posts = postsResponse.data.data || [];
 // =========================
 
 const alreadyPostedWithin7Days = posts.some(post => {
+
   if (!post.message || !post.created_time) {
     return false;
   }
@@ -492,7 +778,7 @@ const alreadyPostedWithin7Days = posts.some(post => {
 
   return (
     postDate >= sevenDaysAgo &&
-    post.message.includes("🎬 FLICKCANVAS Movie of the Day") &&
+    post.message.includes("FLICKCANVAS") &&
     post.message.includes(movie.title)
   );
 });
@@ -526,15 +812,118 @@ const rating = Number(movie.vote_average || 0).toFixed(1);
 const posterUrl = movie.poster_path
   ? `${IMAGE_BASE_URL}${movie.poster_path}`
   : null;
+  // =========================
+// ENGLISH MOVIE DESCRIPTION
+// =========================
 
-const message = `🎬 FLICKCANVAS Movie of the Day
+const genreMap = {
+  28: "Action",
+  12: "Adventure",
+  16: "Animation",
+  35: "Comedy",
+  80: "Crime",
+  99: "Documentary",
+  18: "Drama",
+  10751: "Family",
+  14: "Fantasy",
+  36: "History",
+  27: "Horror",
+  10402: "Music",
+  9648: "Mystery",
+  10749: "Romance",
+  878: "Sci-Fi",
+  10770: "TV Movie",
+  53: "Thriller",
+  10752: "War",
+  37: "Western"
+};
+
+function getMoviePickDescription(movie) {
+  const genres = (movie.genre_ids || [])
+    .map(id => genreMap[id])
+    .filter(Boolean);
+
+  let intro =
+    "🎬 A movie worth discovering for any film lover.";
+
+  if (genres.includes("Action")) {
+    intro =
+      "🔥 An exciting choice for action movie fans.";
+  } else if (genres.includes("Horror")) {
+    intro =
+      "👻 A chilling pick for fans of horror and suspense.";
+  } else if (genres.includes("Thriller")) {
+    intro =
+      "😱 A gripping choice for anyone who enjoys suspense and tension.";
+  } else if (genres.includes("Sci-Fi")) {
+    intro =
+      "🚀 A fascinating pick for fans of science fiction and unforgettable worlds.";
+  } else if (genres.includes("Romance")) {
+    intro =
+      "❤️ A great choice for fans of romance and emotional stories.";
+  } else if (genres.includes("Comedy")) {
+    intro =
+      "😂 A fun pick for anyone looking for an entertaining movie.";
+  } else if (genres.includes("Drama")) {
+    intro =
+      "🎭 A compelling choice for fans of powerful character-driven stories.";
+  } else if (genres.includes("Adventure")) {
+    intro =
+      "🌎 A thrilling pick for fans of adventure and exciting journeys.";
+  } else if (genres.includes("Mystery")) {
+    intro =
+      "🕵️ A mysterious pick for anyone who enjoys puzzles and unexpected turns.";
+  }
+
+  const overview = String(movie.overview || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  let shortOverview = overview;
+
+  if (shortOverview.length > 300) {
+    shortOverview =
+      shortOverview
+        .slice(0, 297)
+        .replace(/\s+\S*$/, "") + "...";
+  }
+
+  return `${intro}\n\n${shortOverview}`;
+}
+
+const movieDescription = isMoviePick
+  ? getMoviePickDescription(movie)
+  : movie.overview || "Discover this movie on FLICKCANVAS.";
+
+const message = isMoviePick
+  ? `🎬 FLICKCANVAS Movie Pick
 
 ${movie.title}
 
 ⭐ Rating: ${rating}/10
+
 📅 Release Date: ${formattedDate}
 
-${movie.overview || "Discover this movie on FLICKCANVAS."}
+${movieDescription}
+
+💬 Have you watched this movie? What did you think? 👇
+
+❤️ Like this post if you love discovering great movies.
+
+📌 Follow FLICKCANVAS for more movie recommendations, trailers, and updates!
+
+👇 Check the comments below for the movie link!
+
+#FLICKCANVAS #MoviePick #Movies #MovieRecommendation #MovieLovers`
+  : `🎬 FLICKCANVAS Movie of the Day
+
+${movie.title}
+
+⭐ Rating: ${rating}/10
+
+📅 Release Date: ${formattedDate}
+
+${movieDescription}
 
 💬 Would you watch this movie? Tell us what you think! 👇
 
@@ -543,8 +932,6 @@ ${movie.overview || "Discover this movie on FLICKCANVAS."}
 📌 Follow FLICKCANVAS to discover more trending movies, trailers, and movie updates every day!
 
 👇 Check the comments below for the movie link!
-
-
 
 #FLICKCANVAS #MovieOfTheDay #Movies #MovieLovers #TrendingMovies`;
 
@@ -606,26 +993,7 @@ try {
     );
   } else {
 
-    const instagramCaption = `🎬 FLICKCANVAS Movie of the Day
-
-${movie.title}
-
-⭐ Rating: ${rating}/10
-
-📅 Release Date: ${formattedDate}
-
-${movie.overview || "Discover this movie on FLICKCANVAS."}
-
-💬 Would you watch this movie? Tell us what you think! 👇
-
-❤️ Like this post if you love discovering new movies.
-
-📌 Follow FLICKCANVAS to discover more trending movies, trailers, and movie updates every day!
-
-👇 Check the comments below for the movie link!
-
-
-#FLICKCANVAS #MovieOfTheDay #Movies #MovieLovers #TrendingMovies`;
+    const instagramCaption = message;
 
 
 
@@ -634,23 +1002,19 @@ ${movie.overview || "Discover this movie on FLICKCANVAS."}
 // CHECK INSTAGRAM POSTS - 7 DAY COOLDOWN
 // =========================
 
-    const mediaResponse = await axios.get(
-      `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
-      {
-        params: {
-          fields: "id,caption,timestamp,media_type",
-          limit: 100,
-          access_token: instagramAccessToken
-        }
-      }
-    );
+const mediaResponse = await axios.get(
+  `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
+  {
+    params: {
+      fields: "id,caption,timestamp,media_type",
+      limit: 100,
+      access_token: instagramAccessToken
+    }
+  }
+);
 
-    const instagramMedia =
-      mediaResponse.data.data || [];
-
-    // =========================
-// CHECK INSTAGRAM POSTS - 7 DAY COOLDOWN
-// =========================
+const instagramMedia =
+  mediaResponse.data.data || [];
 
 const now = new Date();
 
@@ -669,25 +1033,25 @@ const alreadyPostedInstagram =
 
     return (
       postDate >= sevenDaysAgo &&
-      item.caption.includes("🎬 FLICKCANVAS Movie of the Day") &&
+      item.caption.includes("FLICKCANVAS") &&
       item.caption.includes(movie.title)
     );
   });
 
-    if (alreadyPostedInstagram) {
+if (alreadyPostedInstagram) {
 
-      instagramResult = {
-        success: true,
-        skipped: true,
-        reason: "This movie was posted on Instagram within the last 7 days",
-        movie: movie.title
-      };
+  instagramResult = {
+    success: true,
+    skipped: true,
+    reason: "This movie was posted on Instagram within the last 7 days",
+    movie: movie.title
+  };
 
-      console.log(
-        `Instagram duplicate skipped: ${movie.title}`
-      );
+  console.log(
+    `Instagram duplicate skipped: ${movie.title}`
+  );
 
-    } else {
+} else {
 
       // =========================
       // CREATE MEDIA CONTAINER
