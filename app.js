@@ -1470,6 +1470,41 @@ if (process.env.NODE_ENV !== "production") {
     console.log(`http://localhost:${PORT}`);
   });
 }
+// =========================
+// GEMINI TEST
+// =========================
+
+app.get("/api/test-gemini", async (req, res) => {
+  try {
+    const testMovie = {
+      title: "Inception",
+      overview:
+        "A skilled thief who steals secrets through dreams is given a chance to erase his past by planting an idea in someone's mind.",
+      genre_ids: [28, 878],
+      vote_average: 8.8
+    };
+
+    const article = await generateMovieArticle(testMovie);
+
+    res.json({
+      success: true,
+      article
+    });
+
+  } catch (error) {
+    console.error(
+      "GEMINI TEST ERROR:",
+      error.response?.data || error.message
+    );
+
+    res.status(500).json({
+      success: false,
+      error:
+        error.response?.data ||
+        error.message
+    });
+  }
+});
 
 // =========================
 // EXPORT FOR VERCEL
