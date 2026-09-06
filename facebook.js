@@ -31,7 +31,6 @@ async function postToFacebookPage({ message, link, imageUrl }) {
       }
     );
   } else {
-
     // =========================
     // FALLBACK: TEXT POST
     // =========================
@@ -49,10 +48,11 @@ async function postToFacebookPage({ message, link, imageUrl }) {
   }
 
   const result = response.data;
+
   console.log(
-  "FACEBOOK PHOTO RESPONSE:",
-  JSON.stringify(result, null, 2)
-);
+    "FACEBOOK PHOTO RESPONSE:",
+    JSON.stringify(result, null, 2)
+  );
 
   // =========================
   // POST LINK AS FIRST COMMENT
@@ -60,50 +60,55 @@ async function postToFacebookPage({ message, link, imageUrl }) {
 
   const postId = result.id;
 
-let commentResult = null;
+  let commentResult = null;
 
-if (postId && link) {
-  try {
-    const commentResponse = await axios.post(
-      `https://graph.facebook.com/${graphVersion}/${postId}/comments`,
-      null,
-      {
-        params: {
-          message: `🎬 Watch the Trailer & view more details:\n${link}`,
-          access_token: pageAccessToken
+  if (postId && link) {
+    try {
+      const commentResponse = await axios.post(
+        `https://graph.facebook.com/${graphVersion}/${postId}/comments`,
+        null,
+        {
+          params: {
+            message: `🎬 Watch the Trailer & view more details:\n${link}`,
+            access_token: pageAccessToken
+          }
         }
-      }
-    );
+      );
 
-    commentResult = {
-      success: true,
-      id: commentResponse.data.id
-    };
+      commentResult = {
+        success: true,
+        id: commentResponse.data.id
+      };
 
-    console.log(
-      "Facebook first comment posted successfully:",
-      commentResponse.data
-    );
+      console.log(
+        "Facebook first comment posted successfully:",
+        commentResponse.data
+      );
 
-  } catch (commentError) {
-    commentResult = {
-      success: false,
-      error:
+    } catch (commentError) {
+      commentResult = {
+        success: false,
+        error:
+          commentError.response?.data ||
+          commentError.message
+      };
+
+      console.error(
+        "Facebook first comment failed:",
         commentError.response?.data ||
         commentError.message
-    };
-
-    console.error(
-      "Facebook first comment failed:",
-      commentError.response?.data ||
-      commentError.message
-    );
+      );
+    }
   }
+
+  return {
+    ...result,
+    comment: commentResult
+  };
 }
 
-return {
-  ...result,
-  comment: commentResult
-};
+// =========================
+// EXPORT
+// =========================
 
 module.exports = { postToFacebookPage };
