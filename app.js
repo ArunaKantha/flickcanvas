@@ -432,7 +432,7 @@ const currentUTCHour = new Date().getUTCHours();
 const movieIndex = currentUTCHour === 22 ? 1 : 0;
 
 const movie = trendingMovies[movieIndex];
-const forceFacebookTest = true;
+
 
 if (!movie) {
   return res.status(404).json({
