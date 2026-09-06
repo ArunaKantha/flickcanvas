@@ -432,6 +432,7 @@ const currentUTCHour = new Date().getUTCHours();
 const movieIndex = currentUTCHour === 22 ? 1 : 0;
 
 const movie = trendingMovies[movieIndex];
+const forceFacebookTest = true;
 
 if (!movie) {
   return res.status(404).json({
@@ -550,8 +551,9 @@ ${movie.overview || "Discover this movie on FLICKCANVAS."}
 // =========================
 
 let facebookResult = null;
+const forceFacebookTest = true;
 
-if (alreadyPostedToday) {
+if (alreadyPostedToday && !forceFacebookTest) {
   facebookResult = {
     success: true,
     skipped: true,
