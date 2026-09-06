@@ -1452,25 +1452,6 @@ app.get("/data-deletion", (req, res) => {
   res.render("data-deletion", { hideAds: true });
 });
 // =========================
-// 404 PAGE
-// =========================
-
-app.use((req, res) => {
-  res.status(404).send("Page not found");
-});
-
-// =========================
-// LOCAL SERVER
-// =========================
-
-// Vercel එකේදී app.listen() run කරන්න එපා.
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => {
-    console.log(`FLICK CANVAS running at:`);
-    console.log(`http://localhost:${PORT}`);
-  });
-}
-// =========================
 // GEMINI TEST
 // =========================
 
@@ -1505,6 +1486,26 @@ app.get("/api/test-gemini", async (req, res) => {
     });
   }
 });
+// =========================
+// 404 PAGE
+// =========================
+
+app.use((req, res) => {
+  res.status(404).send("Page not found");
+});
+
+// =========================
+// LOCAL SERVER
+// =========================
+
+// Vercel එකේදී app.listen() run කරන්න එපා.
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`FLICK CANVAS running at:`);
+    console.log(`http://localhost:${PORT}`);
+  });
+}
+
 
 // =========================
 // EXPORT FOR VERCEL
