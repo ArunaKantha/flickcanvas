@@ -416,7 +416,7 @@ if (
 // 14:00 UTC = 7:30 PM Sri Lanka → Trending #1
 // 22:00 UTC = 3:30 AM Sri Lanka → Movie Pick
 
-const currentUTCHour = new Date().getUTCHour();
+const currentUTCHour = new Date().getUTCHours();
 
 const isMoviePick = currentUTCHour === 22;
 
