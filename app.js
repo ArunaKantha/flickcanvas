@@ -5,6 +5,95 @@ require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// =========================
+// GEMINI AI MOVIE ARTICLE
+// =========================
+
+async function generateMovieArticle(movie) {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  // Gemini key නැත්නම් TMDB overview fallback
+  if (!apiKey) {
+    console.log("Gemini API key missing - using TMDB overview");
+    return movie.overview || "Discover this movie on FLICKCANVAS.";
+  }
+
+  try {
+    const prompt = `
+Write a short, engaging movie article in English about "${movie.title}".
+
+Movie information:
+Title: ${movie.title}
+TMDB Overview: ${movie.overview || "N/A"}
+Genres: ${(movie.genre_ids || []).join(", ")}
+Rating: ${Number(movie.vote_average || 0).toFixed(1)}/10
+
+Requirements:
+- Write exactly 3 to 5 sentences.
+- Make the article specific to this movie.
+- Do not simply copy the TMDB overview.
+- Rewrite the information naturally in your own words.
+- Mention the movie's story, atmosphere, themes, or what makes it interesting.
+- Do not reveal major spoilers.
+- Do not use a heading.
+- Do not use hashtags.
+- Do not mention TMDB or AI.
+- Keep it suitable for a Facebook and Instagram movie post.
+`;
+
+    const response = await axios.post(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      {
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 180
+        }
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        }
+      }
+    );
+
+    const article =
+      response.data?.candidates?.[0]?.content?.parts?.[0]?.text
+        ?.trim();
+
+    if (!article) {
+      throw new Error("Gemini returned an empty article");
+    }
+
+    console.log(
+      `Gemini article generated successfully: ${movie.title}`
+    );
+
+    return article;
+
+  } catch (error) {
+
+    console.error(
+      "GEMINI ARTICLE ERROR:",
+      error.response?.data ||
+      error.message
+    );
+
+    // IMPORTANT:
+    // Gemini fail වුණත් auto-post එක නවතින්නේ නැහැ
+    return movie.overview ||
+      "Discover this movie on FLICKCANVAS.";
+  }
+}
 
 // =========================
 // EJS SETUP
@@ -891,9 +980,8 @@ function getMoviePickDescription(movie) {
   return `${intro}\n\n${shortOverview}`;
 }
 
-const movieDescription = isMoviePick
-  ? getMoviePickDescription(movie)
-  : movie.overview || "Discover this movie on FLICKCANVAS.";
+const movieDescription =
+  await generateMovieArticle(movie);
 
 const message = isMoviePick
   ? `🎬 FLICKCANVAS Movie Pick
