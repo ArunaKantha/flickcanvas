@@ -12,10 +12,15 @@ const PORT = process.env.PORT || 3000;
 async function generateMovieArticle(movie) {
   const apiKey = process.env.GEMINI_API_KEY;
 
-  // Gemini key නැත්නම් TMDB overview fallback
   if (!apiKey) {
-    console.log("Gemini API key missing - using TMDB overview");
-    return movie.overview || "Discover this movie on FLICKCANVAS.";
+    console.log(
+      "Gemini API key missing - using TMDB overview"
+    );
+
+    return (
+      movie.overview ||
+      "Discover this movie on FLICKCANVAS."
+    );
   }
 
   try {
@@ -25,7 +30,6 @@ Write a short, engaging movie article in English about "${movie.title}".
 Movie information:
 Title: ${movie.title}
 TMDB Overview: ${movie.overview || "N/A"}
-Genres: ${(movie.genre_ids || []).join(", ")}
 Rating: ${Number(movie.vote_average || 0).toFixed(1)}/10
 
 Requirements:
@@ -42,21 +46,10 @@ Requirements:
 `;
 
     const response = await axios.post(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1/interactions",
       {
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 180
-        }
+        model: "gemini-3.6-flash",
+        input: prompt
       },
       {
         headers: {
@@ -67,11 +60,12 @@ Requirements:
     );
 
     const article =
-      response.data?.candidates?.[0]?.content?.parts?.[0]?.text
-        ?.trim();
+      response.data?.output_text?.trim();
 
     if (!article) {
-      throw new Error("Gemini returned an empty article");
+      throw new Error(
+        "Gemini returned an empty article"
+      );
     }
 
     console.log(
@@ -88,10 +82,11 @@ Requirements:
       error.message
     );
 
-    // IMPORTANT:
-    // Gemini fail වුණත් auto-post එක නවතින්නේ නැහැ
-    return movie.overview ||
-      "Discover this movie on FLICKCANVAS.";
+    // If Gemini fails, use TMDB overview
+    return (
+      movie.overview ||
+      "Discover this movie on FLICKCANVAS."
+    );
   }
 }
 
