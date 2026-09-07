@@ -314,6 +314,7 @@ app.get("/movie/:id", async (req, res) => {
     );
 
     const movie = response.data;
+    
     const providers = {
       watch: [],
       rent: [],
@@ -890,7 +891,9 @@ function formatReleaseDate(dateString) {
 
 const formattedDate = formatReleaseDate(movie.release_date);
 
-const rating = Number(movie.vote_average || 0).toFixed(1);
+const rating = movie.vote_average > 0
+  ? Number(movie.vote_average).toFixed(1)
+  : "N/A";
 
 // TMDB poster image
 const posterUrl = movie.poster_path
@@ -983,7 +986,7 @@ const message = isMoviePick
 
 ${movie.title}
 
-⭐ Rating: ${rating}/10
+⭐ Rating: ${rating}${rating !== "N/A" ? "/10" : ""}
 
 📅 Release Date: ${formattedDate}
 
@@ -1002,7 +1005,7 @@ ${movieDescription}
 
 ${movie.title}
 
-⭐ Rating: ${rating}/10
+⭐ Rating: ${rating}${rating !== "N/A" ? "/10" : ""}
 
 📅 Release Date: ${formattedDate}
 
