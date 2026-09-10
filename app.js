@@ -16,7 +16,8 @@ app.get("/auth/pinterest", (req, res) => {
   process.env.PINTEREST_REDIRECT_URI ||
   "https://flickcanvas.vercel.app/auth/pinterest/callback";
 
-  const scope = "boards:read pins:write pins:read user_accounts:read";
+  const scope =
+  "boards:read boards:write pins:read pins:write user_accounts:read";
 
   const pinterestAuthUrl =
     "https://www.pinterest.com/oauth/" +
