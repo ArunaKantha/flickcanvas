@@ -65,49 +65,14 @@ app.get("/auth/pinterest/callback", async (req, res) => {
         },
       }
     );
+  
 
     const accessToken = tokenResponse.data.access_token;
-   // ===============================
-// Pinterest Step 5 - Create Test Pin
-// ===============================
-
-const boardId = "1138073837026954410";
-
-const testPinResponse = await axios.post(
-  "https://api-sandbox.pinterest.com/v5/pins",
-  {
-    board_id: boardId,
-    title: "FLICKCANVAS Test Movie",
-    description:
-      "🎬 FLICKCANVAS Test Movie\n\nDiscover movies on FLICKCANVAS.",
-    media_source: {
-      source_type: "image_url",
-      url: "https://image.tmdb.org/t/p/w500/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg"
-    },
-    link: "https://flickcanvas.vercel.app"
-  },
-  {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json"
-    }
-  }
-);
-
-console.log(
-  "PINTEREST TEST PIN CREATED:",
-  testPinResponse.data
-);
-
-res.send(`
-  <h1>🎉 Pinterest Pin Created!</h1>
-  <p>Pinterest connection successful.</p>
-  <p>Test Pin created successfully.</p>
-  <p>Board: FlickCanvas Movies</p>
-  <p>Pin ID: ${testPinResponse.data.id}</p>
-`);
-
-    
+        res.send(`
+      <h1>🎉 Pinterest OAuth Successful!</h1>
+      <p>Pinterest authorization was successful.</p>
+      <p>Access token received successfully.</p>
+    `);
 
   } catch (error) {
     console.error(
@@ -118,6 +83,68 @@ res.send(`
     res.status(500).send("Pinterest OAuth failed.");
   }
 });
+// ===============================
+// Pinterest Sandbox Test Pin
+// ===============================
+
+app.get("/api/pinterest/test-pin", async (req, res) => {
+  try {
+    const accessToken = process.env.PINTEREST_ACCESS_TOKEN;
+
+    if (!accessToken) {
+      return res.status(500).send("PINTEREST_ACCESS_TOKEN is missing.");
+    }
+
+    const boardId = "1138073837026954410";
+
+    const testPinResponse = await axios.post(
+      "https://api-sandbox.pinterest.com/v5/pins",
+      {
+        board_id: boardId,
+        title: "FLICKCANVAS Sandbox Test Movie",
+        description:
+          "🎬 FLICKCANVAS Sandbox Test Movie\n\nDiscover movies on FLICKCANVAS.",
+        media_source: {
+          source_type: "image_url",
+          url: "https://image.tmdb.org/t/p/w500/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg"
+        },
+        link: "https://flickcanvas.vercel.app"
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    console.log(
+      "PINTEREST SANDBOX TEST PIN CREATED:",
+      testPinResponse.data
+    );
+
+    res.send(`
+      <h1>🎉 Pinterest Sandbox Pin Created!</h1>
+      <p>Sandbox API connection successful.</p>
+      <p>Test Pin created successfully.</p>
+      <p>Board ID: ${boardId}</p>
+      <p>Pin ID: ${testPinResponse.data.id}</p>
+    `);
+
+  } catch (error) {
+    console.error(
+      "PINTEREST SANDBOX ERROR:",
+      error.response?.data || error.message
+    );
+
+    res.status(500).send(
+      `Pinterest Sandbox test failed: ${
+        error.response?.data?.message || error.message
+      }`
+    );
+  }
+});
+   
 // =========================
 // GEMINI AI MOVIE ARTICLE
 // =========================
