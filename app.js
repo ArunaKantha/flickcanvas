@@ -5,6 +5,107 @@ require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// ===============================
+// Pinterest OAuth - Step 3
+// ===============================
+
+app.get("/auth/pinterest", (req, res) => {
+  const clientId = process.env.PINTEREST_APP_ID;
+
+  const redirectUri =
+    "http://localhost:3000/auth/pinterest/callback";
+
+  const scope = "boards:read pins:write pins:read user_accounts:read";
+
+  const pinterestAuthUrl =
+    "https://www.pinterest.com/oauth/" +
+    `?client_id=${encodeURIComponent(clientId)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&response_type=code` +
+    `&scope=${encodeURIComponent(scope)}` +
+    `&state=flickcanvas_pinterest`;
+
+  res.redirect(pinterestAuthUrl);
+});
+// ===============================
+// Pinterest OAuth Callback - Step 4
+// ===============================
+
+app.get("/auth/pinterest/callback", async (req, res) => {
+  try {
+    const { code } = req.query;
+
+    if (!code) {
+      return res.status(400).send("Pinterest authorization code not found.");
+    }
+
+    const clientId = process.env.PINTEREST_APP_ID;
+    const clientSecret = process.env.PINTEREST_APP_SECRET;
+
+    const redirectUri =
+      "http://localhost:3000/auth/pinterest/callback";
+
+    const tokenResponse = await axios.post(
+      "https://api.pinterest.com/v5/oauth/token",
+      new URLSearchParams({
+        grant_type: "authorization_code",
+        code: code,
+        redirect_uri: redirectUri,
+      }),
+      {
+        auth: {
+          username: clientId,
+          password: clientSecret,
+        },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    const accessToken = tokenResponse.data.access_token;
+    // Get Pinterest boards
+const boardsResponse = await axios.get(
+  "https://api.pinterest.com/v5/boards",
+  {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  }
+);
+
+console.log("PINTEREST BOARDS:", boardsResponse.data);
+
+const boards = boardsResponse.data.items || [];
+
+const movieBoard = boards.find(
+  (board) => board.name === "FlickCanvas Movies"
+);
+
+if (movieBoard) {
+  console.log("FLICKCANVAS MOVIES BOARD ID:", movieBoard.id);
+} else {
+  console.log("FlickCanvas Movies board was not found.");
+}
+
+    console.log("PINTEREST ACCESS TOKEN RECEIVED");
+
+    res.send(`
+      <h1>🎉 Pinterest Connected!</h1>
+      <p>Pinterest authorization was successful.</p>
+      <p>Access token received successfully.</p>
+    `);
+
+  } catch (error) {
+    console.error(
+      "PINTEREST OAUTH ERROR:",
+      error.response?.data || error.message
+    );
+
+    res.status(500).send("Pinterest OAuth failed.");
+  }
+});
 // =========================
 // GEMINI AI MOVIE ARTICLE
 // =========================
