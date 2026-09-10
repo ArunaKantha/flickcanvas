@@ -74,7 +74,7 @@ app.get("/auth/pinterest/callback", async (req, res) => {
 const boardId = "1138073837026954410";
 
 const testPinResponse = await axios.post(
-  "https://api.pinterest.com/v5/pins",
+  "https://api-sandbox.pinterest.com/v5/pins",
   {
     board_id: boardId,
     title: "FLICKCANVAS Test Movie",
