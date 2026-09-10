@@ -84,10 +84,10 @@ app.get("/auth/pinterest/callback", async (req, res) => {
   }
 });
 // ===============================
-// Pinterest Sandbox Test Pin
+// Pinterest Sandbox Dynamic TMDB Test Pin
 // ===============================
 
-app.get("/api/pinterest/test-pin", async (req, res) => {
+app.get("/api/pinterest/test-movie", async (req, res) => {
   try {
     const accessToken = process.env.PINTEREST_ACCESS_TOKEN;
 
@@ -97,18 +97,63 @@ app.get("/api/pinterest/test-pin", async (req, res) => {
 
     const boardId = "1138073837026954410";
 
-    const testPinResponse = await axios.post(
+    // Get a real movie from TMDB trending
+    const trendingResponse = await axios.get(
+      `${TMDB_BASE_URL}/trending/movie/day`,
+      {
+        params: {
+          api_key: process.env.TMDB_API_KEY
+        }
+      }
+    );
+
+    const movie = trendingResponse.data.results?.[0];
+
+    if (!movie) {
+      return res.status(404).send("No trending movie found.");
+    }
+
+    if (!movie.poster_path) {
+      return res.status(404).send("Selected movie has no poster.");
+    }
+
+    const posterUrl =
+      `${IMAGE_BASE_URL}${movie.poster_path}`;
+
+    const siteUrl =
+      (process.env.SITE_URL ||
+        "https://flickcanvas.vercel.app").replace(/\/$/, "");
+
+    const movieLink =
+      `${siteUrl}/movie/${movie.id}`;
+
+    const rating =
+      Number(movie.vote_average || 0).toFixed(1);
+
+    const description =
+      `🎬 ${movie.title}
+
+⭐ Rating: ${rating}/10
+
+📅 Release Date: ${movie.release_date || "N/A"}
+
+Discover more details, trailers and movie information on FLICKCANVAS.`;
+
+    const pinResponse = await axios.post(
       "https://api-sandbox.pinterest.com/v5/pins",
       {
         board_id: boardId,
-        title: "FLICKCANVAS Sandbox Test Movie",
-        description:
-          "🎬 FLICKCANVAS Sandbox Test Movie\n\nDiscover movies on FLICKCANVAS.",
+
+        title: `🎬 ${movie.title}`,
+
+        description: description,
+
         media_source: {
           source_type: "image_url",
-          url: "https://image.tmdb.org/t/p/w500/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg"
+          url: posterUrl
         },
-        link: "https://flickcanvas.vercel.app"
+
+        link: movieLink
       },
       {
         headers: {
@@ -119,27 +164,41 @@ app.get("/api/pinterest/test-pin", async (req, res) => {
     );
 
     console.log(
-      "PINTEREST SANDBOX TEST PIN CREATED:",
-      testPinResponse.data
+      "PINTEREST SANDBOX TMDB PIN CREATED:",
+      pinResponse.data
     );
 
     res.send(`
-      <h1>🎉 Pinterest Sandbox Pin Created!</h1>
-      <p>Sandbox API connection successful.</p>
-      <p>Test Pin created successfully.</p>
-      <p>Board ID: ${boardId}</p>
-      <p>Pin ID: ${testPinResponse.data.id}</p>
+      <h1>🎉 Pinterest Sandbox Movie Pin Created!</h1>
+
+      <p><strong>Movie:</strong> ${movie.title}</p>
+
+      <p><strong>Rating:</strong> ${rating}/10</p>
+
+      <p><strong>Board ID:</strong> ${boardId}</p>
+
+      <p><strong>Pin ID:</strong> ${pinResponse.data.id}</p>
+
+      <p>
+        <strong>Movie URL:</strong>
+        <a href="${movieLink}" target="_blank">
+          ${movieLink}
+        </a>
+      </p>
+
+      <p>✅ TMDB movie + poster + FLICKCANVAS link were sent to Pinterest Sandbox.</p>
     `);
 
   } catch (error) {
     console.error(
-      "PINTEREST SANDBOX ERROR:",
+      "PINTEREST SANDBOX TMDB ERROR:",
       error.response?.data || error.message
     );
 
     res.status(500).send(
-      `Pinterest Sandbox test failed: ${
-        error.response?.data?.message || error.message
+      `Pinterest Sandbox TMDB test failed: ${
+        error.response?.data?.message ||
+        error.message
       }`
     );
   }
