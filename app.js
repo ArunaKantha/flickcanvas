@@ -13,7 +13,8 @@ app.get("/auth/pinterest", (req, res) => {
   const clientId = process.env.PINTEREST_APP_ID;
 
   const redirectUri =
-    "http://localhost:3000/auth/pinterest/callback";
+  process.env.PINTEREST_REDIRECT_URI ||
+  "https://flickcanvas.vercel.app/auth/pinterest/callback";
 
   const scope = "boards:read pins:write pins:read user_accounts:read";
 
@@ -43,7 +44,8 @@ app.get("/auth/pinterest/callback", async (req, res) => {
     const clientSecret = process.env.PINTEREST_APP_SECRET;
 
     const redirectUri =
-      "http://localhost:3000/auth/pinterest/callback";
+  process.env.PINTEREST_REDIRECT_URI ||
+  "https://flickcanvas.vercel.app/auth/pinterest/callback";
 
     const tokenResponse = await axios.post(
       "https://api.pinterest.com/v5/oauth/token",
