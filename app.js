@@ -66,38 +66,47 @@ app.get("/auth/pinterest/callback", async (req, res) => {
     );
 
     const accessToken = tokenResponse.data.access_token;
-    // Get Pinterest boards
-const boardsResponse = await axios.get(
-  "https://api.pinterest.com/v5/boards",
+   // ===============================
+// Pinterest Step 5 - Create Test Pin
+// ===============================
+
+const boardId = "1138073837026954410";
+
+const testPinResponse = await axios.post(
+  "https://api.pinterest.com/v5/pins",
+  {
+    board_id: boardId,
+    title: "FLICKCANVAS Test Movie",
+    description:
+      "🎬 FLICKCANVAS Test Movie\n\nDiscover movies on FLICKCANVAS.",
+    media_source: {
+      source_type: "image_url",
+      url: "https://image.tmdb.org/t/p/w500/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg"
+    },
+    link: "https://flickcanvas.vercel.app"
+  },
   {
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
+      "Content-Type": "application/json"
+    }
   }
 );
 
-console.log("PINTEREST BOARDS:", boardsResponse.data);
-
-const boards = boardsResponse.data.items || [];
-
-const movieBoard = boards.find(
-  (board) => board.name === "FlickCanvas Movies"
+console.log(
+  "PINTEREST TEST PIN CREATED:",
+  testPinResponse.data
 );
 
-if (movieBoard) {
-  console.log("FLICKCANVAS MOVIES BOARD ID:", movieBoard.id);
-} else {
-  console.log("FlickCanvas Movies board was not found.");
-}
+res.send(`
+  <h1>🎉 Pinterest Pin Created!</h1>
+  <p>Pinterest connection successful.</p>
+  <p>Test Pin created successfully.</p>
+  <p>Board: FlickCanvas Movies</p>
+  <p>Pin ID: ${testPinResponse.data.id}</p>
+`);
 
-    console.log("PINTEREST ACCESS TOKEN RECEIVED");
-
-    res.send(`
-      <h1>🎉 Pinterest Connected!</h1>
-      <p>Pinterest authorization was successful.</p>
-      <p>Access token received successfully.</p>
-    `);
+    
 
   } catch (error) {
     console.error(
