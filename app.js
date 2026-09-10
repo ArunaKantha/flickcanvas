@@ -1480,13 +1480,124 @@ console.log(
       instagramError.message
   };
 }
+// =========================
+// PINTEREST SANDBOX AUTO POST
+// =========================
+
+let pinterestResult = null;
+
+try {
+  const pinterestAccessToken =
+    process.env.PINTEREST_ACCESS_TOKEN;
+
+  const pinterestBoardId =
+    "1138073837026954410";
+
+  if (!pinterestAccessToken) {
+
+    console.log(
+      "Pinterest auto post skipped: Pinterest access token missing"
+    );
+
+    pinterestResult = {
+      success: false,
+      skipped: true,
+      reason: "PINTEREST_ACCESS_TOKEN is missing"
+    };
+
+  } else if (!posterUrl) {
+
+    console.log(
+      "Pinterest auto post skipped: Movie has no poster"
+    );
+
+    pinterestResult = {
+      success: false,
+      skipped: true,
+      reason: "Movie has no poster"
+    };
+
+  } else {
+
+    const pinterestDescription =
+      `🎬 ${movie.title}
+
+⭐ Rating: ${rating}/10
+
+📅 Release Date: ${formattedDate}
+
+${movie.overview || "Discover this movie on FLICKCANVAS."}
+
+🎥 Watch the trailer and view more details on FLICKCANVAS.
+
+#FLICKCANVAS #Movies #MovieLovers #MovieRecommendation`;
+
+    const pinterestResponse = await axios.post(
+      "https://api-sandbox.pinterest.com/v5/pins",
+      {
+        board_id: pinterestBoardId,
+
+        title: `🎬 ${movie.title}`,
+
+        description: pinterestDescription,
+
+        media_source: {
+          source_type: "image_url",
+          url: posterUrl
+        },
+
+        link: link
+      },
+      {
+        headers: {
+          Authorization:
+            `Bearer ${pinterestAccessToken}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    console.log(
+      "PINTEREST SANDBOX AUTO POST CREATED:",
+      pinterestResponse.data
+    );
+
+    pinterestResult = {
+      success: true,
+      skipped: false,
+      movie: movie.title,
+      pinterestPinId:
+        pinterestResponse.data.id
+    };
+
+    console.log(
+      `Pinterest Sandbox posted successfully: ${movie.title}`
+    );
+  }
+
+} catch (pinterestError) {
+
+  console.error(
+    "PINTEREST SANDBOX AUTO POST ERROR:",
+    pinterestError.response?.data ||
+    pinterestError.message
+  );
+
+  pinterestResult = {
+    success: false,
+    error:
+      pinterestError.response?.data ||
+      pinterestError.message
+  };
+}
 
 res.json({
   success: true,
   skipped: false,
   movie: movie.title,
   facebook: facebookResult,
-  instagram: instagramResult
+  instagram: instagramResult,
+  pinterest: pinterestResult
 });
 
 } catch (error) {
