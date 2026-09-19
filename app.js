@@ -245,7 +245,7 @@ Requirements:
 `;
 
     const response = await axios.post(
-      "https://generativelanguage.googleapis.com/v1/interactions",
+      "https://generativelanguage.googleapis.com/v1beta/interactions",
       {
         model: "gemini-3.6-flash",
         input: prompt
@@ -258,10 +258,51 @@ Requirements:
       }
     );
 
-    const article =
-      response.data?.output_text?.trim();
+    // =========================
+    // GET TEXT FROM GEMINI
+    // =========================
+
+    let article = "";
+
+    // SDK-style response fallback
+    if (
+      typeof response.data?.output_text === "string"
+    ) {
+      article = response.data.output_text.trim();
+    }
+
+    // REST Interactions API response
+    if (!article && Array.isArray(response.data?.steps)) {
+
+      for (const step of response.data.steps) {
+
+        if (
+          step.type === "model_output" &&
+          Array.isArray(step.content)
+        ) {
+
+          const textParts = step.content
+            .filter(
+              part =>
+                part.type === "text" &&
+                typeof part.text === "string"
+            )
+            .map(part => part.text.trim())
+            .filter(Boolean);
+
+          if (textParts.length) {
+            article = textParts.join("\n").trim();
+          }
+        }
+      }
+    }
 
     if (!article) {
+      console.error(
+        "GEMINI RAW RESPONSE:",
+        JSON.stringify(response.data)
+      );
+
       throw new Error(
         "Gemini returned an empty article"
       );
@@ -288,7 +329,6 @@ Requirements:
     );
   }
 }
-
 // =========================
 // EJS SETUP
 // =========================
