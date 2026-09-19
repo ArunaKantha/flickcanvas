@@ -709,7 +709,8 @@ let movie;
 if (!isMoviePick) {
 
   // =========================
-  // TRENDING MOVIE #1
+  // TRENDING MOVIE
+  // Skip movies posted within last 7 days
   // =========================
 
   const trendingResponse = await axios.get(
@@ -730,7 +731,177 @@ if (!isMoviePick) {
         item.poster_path
       );
 
-  movie = trendingMovies[0];
+  if (!trendingMovies.length) {
+    throw new Error("No trending movies found");
+  }
+
+  const sevenDaysAgo = new Date(
+    Date.now() - 7 * 24 * 60 * 60 * 1000
+  );
+
+  // =========================
+  // FACEBOOK HISTORY
+  // =========================
+
+  const pageId =
+    process.env.FACEBOOK_PAGE_ID;
+
+  const pageAccessToken =
+    process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+
+  const graphVersion =
+    process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
+
+  let facebookPosts = [];
+
+  if (pageId && pageAccessToken) {
+    try {
+      const postsResponse = await axios.get(
+        `https://graph.facebook.com/${graphVersion}/${pageId}/posts`,
+        {
+          params: {
+            fields: "id,message,created_time",
+            limit: 100,
+            access_token: pageAccessToken
+          }
+        }
+      );
+
+      facebookPosts =
+        postsResponse.data.data || [];
+
+    } catch (error) {
+      console.error(
+        "Could not read Facebook post history:",
+        error.response?.data || error.message
+      );
+    }
+  }
+
+  // =========================
+  // INSTAGRAM HISTORY
+  // =========================
+
+  const instagramAccountId =
+    process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
+
+  const instagramAccessToken =
+    process.env.INSTAGRAM_ACCESS_TOKEN;
+
+  const instagramGraphVersion =
+    process.env.INSTAGRAM_GRAPH_VERSION || "v26.0";
+
+  let instagramMedia = [];
+
+  if (
+    instagramAccountId &&
+    instagramAccessToken
+  ) {
+    try {
+      const mediaResponse = await axios.get(
+        `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
+        {
+          params: {
+            fields: "id,caption,timestamp,media_type",
+            limit: 100,
+            access_token: instagramAccessToken
+          }
+        }
+      );
+
+      instagramMedia =
+        mediaResponse.data.data || [];
+
+    } catch (error) {
+      console.error(
+        "Could not read Instagram post history:",
+        error.response?.data || error.message
+      );
+    }
+  }
+
+  // =========================
+  // CHECK LAST 7 DAYS
+  // =========================
+
+  function wasPostedWithin7Days(title) {
+
+    const facebookDuplicate =
+      facebookPosts.some(post => {
+
+        if (
+          !post.message ||
+          !post.created_time
+        ) {
+          return false;
+        }
+
+        const postDate =
+          new Date(post.created_time);
+
+        return (
+          postDate >= sevenDaysAgo &&
+          post.message.includes("FLICKCANVAS") &&
+          post.message.includes(title)
+        );
+      });
+
+    const instagramDuplicate =
+      instagramMedia.some(item => {
+
+        if (
+          !item.caption ||
+          !item.timestamp
+        ) {
+          return false;
+        }
+
+        const postDate =
+          new Date(item.timestamp);
+
+        return (
+          postDate >= sevenDaysAgo &&
+          item.caption.includes("FLICKCANVAS") &&
+          item.caption.includes(title)
+        );
+      });
+
+    return (
+      facebookDuplicate ||
+      instagramDuplicate
+    );
+  }
+
+  // =========================
+  // SELECT FIRST AVAILABLE
+  // TRENDING MOVIE
+  // =========================
+
+  movie = null;
+
+  for (const candidate of trendingMovies) {
+
+    if (wasPostedWithin7Days(candidate.title)) {
+      console.log(
+        `Trending duplicate skipped during selection: ${candidate.title}`
+      );
+      continue;
+    }
+
+    movie = candidate;
+
+    console.log(
+      `Trending movie selected: ${candidate.title}`
+    );
+
+    break;
+  }
+
+  if (!movie) {
+    throw new Error(
+      "All trending movies were posted within the last 7 days"
+    );
+  }
 
 } else {
 
