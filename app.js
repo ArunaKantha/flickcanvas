@@ -203,7 +203,126 @@ Discover more details, trailers and movie information on FLICKCANVAS.`;
     );
   }
 });
-   
+   // =========================
+// FACEBOOK + INSTAGRAM
+// REEL TEST
+// =========================
+
+app.get("/api/reels/test-post", async (req, res) => {
+
+  const cronSecret =
+    process.env.CRON_SECRET ||
+    process.env.FACEBOOK_CRON_SECRET;
+
+  const manualSecret =
+    req.query.secret || "";
+
+  if (
+    !cronSecret ||
+    manualSecret !== cronSecret
+  ) {
+    return res.status(401).json({
+      error: "Unauthorized"
+    });
+  }
+
+  const videoUrl =
+    process.env.REEL_TEST_VIDEO_URL;
+
+  if (!videoUrl) {
+    return res.status(500).json({
+      error:
+        "REEL_TEST_VIDEO_URL is missing"
+    });
+  }
+
+  const title =
+    "FLICKCANVAS Reel Test";
+
+  const caption = `🎬 FLICKCANVAS
+
+Reel publishing test.
+
+Follow FLICKCANVAS for trending movies, trailers and movie recommendations!
+
+#FLICKCANVAS #Movies #MovieReels`;
+
+  let facebook = null;
+  let instagram = null;
+
+  try {
+
+    // FACEBOOK
+    try {
+      facebook =
+        await publishFacebookReel({
+          videoUrl,
+          title,
+          description: caption
+        });
+
+    } catch (facebookError) {
+
+      console.error(
+        "FACEBOOK REEL ERROR:",
+        facebookError.response?.data ||
+        facebookError.message
+      );
+
+      facebook = {
+        success: false,
+        error:
+          facebookError.response?.data ||
+          facebookError.message
+      };
+    }
+
+    // INSTAGRAM
+    try {
+      instagram =
+        await publishInstagramReel({
+          videoUrl,
+          caption
+        });
+
+    } catch (instagramError) {
+
+      console.error(
+        "INSTAGRAM REEL ERROR:",
+        instagramError.response?.data ||
+        instagramError.message
+      );
+
+      instagram = {
+        success: false,
+        error:
+          instagramError.response?.data ||
+          instagramError.message
+      };
+    }
+
+    return res.json({
+      success: true,
+      facebook,
+      instagram
+    });
+
+  } catch (error) {
+
+    console.error(
+      "REEL TEST ERROR:",
+      error.response?.data ||
+      error.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      error:
+        error.response?.data ||
+        error.message
+    });
+  }
+});
 // =========================
 // GEMINI AI MOVIE ARTICLE
 // =========================
@@ -1825,7 +1944,232 @@ res.json({
 }
 });
 
+// =========================
+// FACEBOOK REEL PUBLISH
+// =========================
 
+async function publishFacebookReel({
+  videoUrl,
+  title,
+  description
+}) {
+  const pageAccessToken =
+    process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+
+  const graphVersion =
+    process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
+
+  if (!pageAccessToken) {
+    throw new Error(
+      "FACEBOOK_PAGE_ACCESS_TOKEN is missing"
+    );
+  }
+
+  // STEP 1 - CREATE REEL UPLOAD SESSION
+  const startResponse = await axios.post(
+    `https://graph.facebook.com/${graphVersion}/me/video_reels`,
+    null,
+    {
+      params: {
+        access_token: pageAccessToken,
+        upload_phase: "start"
+      }
+    }
+  );
+
+  const videoId =
+    startResponse.data.video_id;
+
+  const uploadUrl =
+    startResponse.data.upload_url;
+
+  if (!videoId || !uploadUrl) {
+    throw new Error(
+      "Facebook Reel upload session was not created"
+    );
+  }
+
+  console.log(
+    `Facebook Reel session created: ${videoId}`
+  );
+
+  // STEP 2 - FACEBOOK DOWNLOADS HOSTED VIDEO
+  await axios.post(
+    uploadUrl,
+    null,
+    {
+      headers: {
+        Authorization:
+          `OAuth ${pageAccessToken}`,
+        file_url: videoUrl
+      }
+    }
+  );
+
+  console.log(
+    `Facebook Reel uploaded: ${videoId}`
+  );
+
+  // STEP 3 - PUBLISH
+  const publishResponse = await axios.post(
+    `https://graph.facebook.com/${graphVersion}/me/video_reels`,
+    null,
+    {
+      params: {
+        access_token: pageAccessToken,
+        video_id: videoId,
+        upload_phase: "finish",
+        video_state: "PUBLISHED",
+        title,
+        description
+      }
+    }
+  );
+
+  console.log(
+    `Facebook Reel publish requested: ${videoId}`
+  );
+
+  return {
+    success: true,
+    videoId,
+    result: publishResponse.data
+  };
+}
+
+
+// =========================
+// INSTAGRAM REEL PUBLISH
+// =========================
+
+async function publishInstagramReel({
+  videoUrl,
+  caption
+}) {
+  const instagramAccountId =
+    process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
+
+  const instagramAccessToken =
+    process.env.INSTAGRAM_ACCESS_TOKEN;
+
+  const graphVersion =
+    process.env.INSTAGRAM_GRAPH_VERSION || "v26.0";
+
+  if (
+    !instagramAccountId ||
+    !instagramAccessToken
+  ) {
+    throw new Error(
+      "Instagram credentials are missing"
+    );
+  }
+
+  // STEP 1 - CREATE REEL CONTAINER
+  const containerResponse =
+    await axios.post(
+      `https://graph.facebook.com/${graphVersion}/${instagramAccountId}/media`,
+      null,
+      {
+        params: {
+          media_type: "REELS",
+          video_url: videoUrl,
+          caption,
+          share_to_feed: true,
+          access_token:
+            instagramAccessToken
+        }
+      }
+    );
+
+  const creationId =
+    containerResponse.data.id;
+
+  if (!creationId) {
+    throw new Error(
+      "Instagram Reel container was not created"
+    );
+  }
+
+  console.log(
+    `Instagram Reel container created: ${creationId}`
+  );
+
+  // STEP 2 - WAIT UNTIL FINISHED
+  let mediaReady = false;
+
+  for (
+    let attempt = 1;
+    attempt <= 20;
+    attempt++
+  ) {
+    await new Promise(resolve =>
+      setTimeout(resolve, 5000)
+    );
+
+    const statusResponse =
+      await axios.get(
+        `https://graph.facebook.com/${graphVersion}/${creationId}`,
+        {
+          params: {
+            fields: "status_code,status",
+            access_token:
+              instagramAccessToken
+          }
+        }
+      );
+
+    const status =
+      statusResponse.data.status_code;
+
+    console.log(
+      `Instagram Reel status: ${status}`
+    );
+
+    if (status === "FINISHED") {
+      mediaReady = true;
+      break;
+    }
+
+    if (
+      status === "ERROR" ||
+      status === "EXPIRED"
+    ) {
+      throw new Error(
+        `Instagram Reel processing failed: ${status}`
+      );
+    }
+  }
+
+  if (!mediaReady) {
+    throw new Error(
+      "Instagram Reel processing timeout"
+    );
+  }
+
+  // STEP 3 - PUBLISH REEL
+  const publishResponse =
+    await axios.post(
+      `https://graph.facebook.com/${graphVersion}/${instagramAccountId}/media_publish`,
+      null,
+      {
+        params: {
+          creation_id: creationId,
+          access_token:
+            instagramAccessToken
+        }
+      }
+    );
+
+  console.log(
+    `Instagram Reel posted successfully: ${publishResponse.data.id}`
+  );
+
+  return {
+    success: true,
+    creationId,
+    mediaId: publishResponse.data.id
+  };
+}
 // =========================
 // FACEBOOK TEST POST
 // =========================
