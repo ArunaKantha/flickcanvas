@@ -11,5 +11,15 @@
       "src": "/(.*)",
       "dest": "app.js"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/facebook/auto-post",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/facebook/auto-post",
+      "schedule": "0 22 * * *"
+    }
   ]
 }
