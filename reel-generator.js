@@ -2,7 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const { spawnSync } = require("child_process");
-const ffmpegPath = require("ffmpeg-static");
+const ffmpegPath =
+  process.platform === "win32"
+    ? require("ffmpeg-static")
+    : "ffmpeg";
 
 require("dotenv").config();
 
