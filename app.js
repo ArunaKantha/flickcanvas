@@ -632,7 +632,70 @@ app.get("/api/reels/auto-post", async (req, res) => {
 
     const movieLink =
       `${siteUrl}/movie/${movieId}`;
+// =========================
+// FINAL 7-DAY DUPLICATE SAFETY CHECK
+// =========================
 
+const recentResponse =
+  await axios.get(
+    `${siteUrl}/api/reels/recent-posts`,
+    {
+      headers: {
+        Authorization:
+          `Bearer ${cronSecret}`
+      }
+    }
+  );
+
+const recentTexts =
+  recentResponse.data?.texts;
+
+if (!Array.isArray(recentTexts)) {
+  throw new Error(
+    "Could not verify Reel duplicate history"
+  );
+}
+
+const normalizedMovieTitle =
+  String(movieTitle || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+const alreadyUsedRecently =
+  recentTexts.some(text => {
+
+    const normalizedText =
+      String(text || "")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+
+    return normalizedText.includes(
+      normalizedMovieTitle
+    );
+  });
+
+if (alreadyUsedRecently) {
+
+  console.log(
+    `Reel auto-post skipped - 7-day duplicate: ${movieTitle}`
+  );
+
+  return res.json({
+    success: true,
+    skipped: true,
+    reason:
+      "This movie was already used in a Facebook or Instagram post/Reel within the last 7 days",
+
+    movie: {
+      id: movieId,
+      title: movieTitle,
+      rating,
+      link: movieLink
+    }
+  });
+}
 
     // =========================
     // CAPTION

@@ -217,7 +217,9 @@ async function createPremiumReel() {
       item =>
         item.id &&
         item.title &&
-        item.poster_path
+        item.poster_path &&
+        Number(item.vote_average || 0) >= 6.5 &&
+        Number(item.vote_count || 0) >= 100
     );
 
 
