@@ -1,0 +1,119 @@
+name: FlickCanvas Auto Reel
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # 15:30 UTC = 9:00 PM Sri Lanka
+    - cron: "30 15 * * *"
+
+    # 23:30 UTC = 5:00 AM Sri Lanka
+    - cron: "30 23 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: flickcanvas-auto-reel
+  cancel-in-progress: false
+
+jobs:
+  create-and-post-reel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      # =========================
+      # CHECKOUT PROJECT
+      # =========================
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # =========================
+      # NODE
+      # =========================
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      # =========================
+      # INSTALL
+      # =========================
+      - name: Install dependencies
+        run: npm ci
+
+      # =========================
+      # CREATE REEL
+      # =========================
+      - name: Generate premium Reel
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: https://flickcanvas.vercel.app
+        run: node reel-generator.js
+
+      # =========================
+      # SAVE GENERATED FILES
+      # =========================
+      - name: Commit generated Reel
+        run: |
+          git config user.name "FlickCanvas Bot"
+          git config user.email "actions@github.com"
+
+          git add -f public/auto-reel-premium.mp4
+          git add -f public/auto-reel-meta.json
+
+          if git diff --cached --quiet; then
+            echo "No Reel changes to commit."
+          else
+            git commit -m "Auto generate FlickCanvas Reel"
+
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      # =========================
+      # WAIT FOR VERCEL
+      # =========================
+      - name: Wait for Vercel deployment
+        shell: bash
+        run: |
+          GENERATED_AT=$(node -p "require('./public/auto-reel-meta.json').generatedAt")
+
+          echo "Waiting for generated Reel deployment..."
+          echo "Generated at: $GENERATED_AT"
+
+          for i in {1..30}; do
+
+            RESPONSE=$(curl -fsS \
+              "https://flickcanvas.vercel.app/auto-reel-meta.json" \
+              || true)
+
+            if echo "$RESPONSE" | grep -Fq "$GENERATED_AT"; then
+              echo "Vercel Reel deployment is ready."
+              exit 0
+            fi
+
+            echo "Not ready yet. Waiting 20 seconds..."
+            sleep 20
+          done
+
+          echo "Vercel deployment timeout."
+          exit 1
+
+      # =========================
+      # FACEBOOK + INSTAGRAM
+      # =========================
+      - name: Publish Reel
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        shell: bash
+        run: |
+          curl --fail --show-error --silent \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://flickcanvas.vercel.app/api/reels/auto-post"
+
+          echo
+          echo "Reel publishing request completed."
