@@ -205,61 +205,170 @@ Discover more details, trailers and movie information on FLICKCANVAS.`;
 });
    // =========================
 // FACEBOOK + INSTAGRAM
-// REEL TEST
+// REEL AUTO POST
 // =========================
 
-app.get("/api/reels/test-post", async (req, res) => {
+app.get("/api/reels/auto-post", async (req, res) => {
+
+  const authorization =
+    req.get("authorization") || "";
+
+  const bearerSecret =
+    authorization.startsWith("Bearer ")
+      ? authorization.slice(7)
+      : "";
+
+  const manualSecret =
+    req.query.secret || "";
 
   const cronSecret =
     process.env.CRON_SECRET ||
     process.env.FACEBOOK_CRON_SECRET;
 
-  const manualSecret =
-    req.query.secret || "";
+  const isVercelCron =
+    req.headers["x-vercel-cron"] === "1";
+
 
   if (
-    !cronSecret ||
-    manualSecret !== cronSecret
+    !isVercelCron &&
+    (
+      !cronSecret ||
+      (
+        bearerSecret !== cronSecret &&
+        manualSecret !== cronSecret
+      )
+    )
   ) {
     return res.status(401).json({
       error: "Unauthorized"
     });
   }
 
-  const videoUrl =
-    process.env.REEL_TEST_VIDEO_URL;
-
-  if (!videoUrl) {
-    return res.status(500).json({
-      error:
-        "REEL_TEST_VIDEO_URL is missing"
-    });
-  }
-
-  const title =
-    "FLICKCANVAS Reel Test";
-
-  const caption = `🎬 FLICKCANVAS
-
-Reel publishing test.
-
-Follow FLICKCANVAS for trending movies, trailers and movie recommendations!
-
-#FLICKCANVAS #Movies #MovieReels`;
-
-  let facebook = null;
-  let instagram = null;
 
   try {
 
-    // FACEBOOK
+    // =========================
+    // VIDEO URL
+    // =========================
+
+    const siteUrl = (
+      process.env.SITE_URL ||
+      "https://flickcanvas.vercel.app"
+    ).replace(/\/$/, "");
+
+
+    const videoUrl =
+      process.env.REEL_VIDEO_URL ||
+      `${siteUrl}/auto-reel-premium.mp4`;
+
+
+    // =========================
+    // READ REEL MOVIE METADATA
+    // =========================
+
+    const reelMetaPath =
+      path.join(
+        __dirname,
+        "public",
+        "auto-reel-meta.json"
+      );
+
+
+    if (!fs.existsSync(reelMetaPath)) {
+      return res.status(500).json({
+        success: false,
+        error:
+          "auto-reel-meta.json not found"
+      });
+    }
+
+
+    const movieData =
+      JSON.parse(
+        fs.readFileSync(
+          reelMetaPath,
+          "utf8"
+        )
+      );
+
+
+    const movieId =
+      movieData.movieId;
+
+    const movieTitle =
+      movieData.title;
+
+    const rating =
+      movieData.rating;
+
+
+    if (
+      !movieId ||
+      !movieTitle
+    ) {
+      return res.status(500).json({
+        success: false,
+        error:
+          "Invalid Reel movie metadata"
+      });
+    }
+
+
+    // =========================
+    // FLICKCANVAS MOVIE LINK
+    // =========================
+
+    const movieLink =
+      `${siteUrl}/movie/${movieId}`;
+
+
+    // =========================
+    // CAPTION
+    // =========================
+
+    const title =
+      `${movieTitle} | FLICKCANVAS`;
+
+
+    const caption =
+`🎬 ${movieTitle}
+
+⭐ Rating: ${rating}/10
+
+🎥 Watch the trailer and view movie details:
+${movieLink}
+
+📌 Follow FLICKCANVAS for trending movies, trailers and movie recommendations!
+
+#FLICKCANVAS #FLICKCANVASReel #Movies #MovieReels #MovieRecommendations`;
+
+
+    console.log(
+      `Reel movie: ${movieTitle}`
+    );
+
+    console.log(
+      `Reel movie link: ${movieLink}`
+    );
+
+
+    let facebook = null;
+    let instagram = null;
+
+
+    // =========================
+    // FACEBOOK REEL
+    // =========================
+
     try {
+
       facebook =
         await publishFacebookReel({
           videoUrl,
           title,
           description: caption
         });
+
 
     } catch (facebookError) {
 
@@ -269,21 +378,85 @@ Follow FLICKCANVAS for trending movies, trailers and movie recommendations!
         facebookError.message
       );
 
+
       facebook = {
         success: false,
         error:
           facebookError.response?.data ||
           facebookError.message
       };
+
     }
 
-    // INSTAGRAM
+
+    // =========================
+    // INSTAGRAM REEL
+    // =========================
+
     try {
+
       instagram =
         await publishInstagramReel({
           videoUrl,
           caption
         });
+
+
+      // =========================
+      // INSTAGRAM FIRST COMMENT
+      // =========================
+
+      if (
+        instagram?.success &&
+        instagram?.mediaId
+      ) {
+
+        try {
+
+          const instagramAccessToken =
+            process.env.INSTAGRAM_ACCESS_TOKEN;
+
+          const instagramGraphVersion =
+            process.env.INSTAGRAM_GRAPH_VERSION ||
+            "v26.0";
+
+
+          const commentMessage =
+`🎬 Watch the trailer & view more details:
+
+${movieLink}`;
+
+
+          await axios.post(
+            `https://graph.facebook.com/${instagramGraphVersion}/${instagram.mediaId}/comments`,
+            null,
+            {
+              params: {
+                message: commentMessage,
+                access_token:
+                  instagramAccessToken
+              }
+            }
+          );
+
+
+          console.log(
+            `Instagram Reel first comment posted: ${movieTitle}`
+          );
+
+
+        } catch (commentError) {
+
+          console.error(
+            "INSTAGRAM REEL COMMENT ERROR:",
+            commentError.response?.data ||
+            commentError.message
+          );
+
+        }
+
+      }
+
 
     } catch (instagramError) {
 
@@ -293,27 +466,46 @@ Follow FLICKCANVAS for trending movies, trailers and movie recommendations!
         instagramError.message
       );
 
+
       instagram = {
         success: false,
         error:
           instagramError.response?.data ||
           instagramError.message
       };
+
     }
+
+
+    // =========================
+    // RESPONSE
+    // =========================
 
     return res.json({
       success: true,
+
+      movie: {
+        id: movieId,
+        title: movieTitle,
+        rating,
+        link: movieLink
+      },
+
+      videoUrl,
+
       facebook,
       instagram
     });
 
+
   } catch (error) {
 
     console.error(
-      "REEL TEST ERROR:",
+      "REEL AUTO POST ERROR:",
       error.response?.data ||
       error.message
     );
+
 
     return res.status(500).json({
       success: false,
@@ -321,7 +513,9 @@ Follow FLICKCANVAS for trending movies, trailers and movie recommendations!
         error.response?.data ||
         error.message
     });
+
   }
+
 });
 // =========================
 // GEMINI AI MOVIE ARTICLE

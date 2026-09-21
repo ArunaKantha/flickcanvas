@@ -254,7 +254,29 @@ if (!fs.existsSync(backgroundPath)) {
       ),
       "utf8"
     );
+const metaPath = path.join(
+  publicDir,
+  "auto-reel-meta.json"
+);
 
+fs.writeFileSync(
+  metaPath,
+  JSON.stringify(
+    {
+      movieId: movie.id,
+      title: movie.title,
+      rating: rating,
+      generatedAt: new Date().toISOString()
+    },
+    null,
+    2
+  ),
+  "utf8"
+);
+
+console.log(
+  `Reel metadata saved: ${metaPath}`
+);
 
     // =========================
     // FONT
