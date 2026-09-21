@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
 
   schedule:
-    # 15:30 UTC = 9:00 PM Sri Lanka
+    # 9:00 PM Sri Lanka
     - cron: "30 15 * * *"
 
-    # 23:30 UTC = 5:00 AM Sri Lanka
+    # 5:00 AM Sri Lanka
     - cron: "30 23 * * *"
 
 permissions:
@@ -23,15 +23,18 @@ jobs:
     timeout-minutes: 25
 
     steps:
+
       # =========================
-      # CHECKOUT PROJECT
+      # CHECKOUT
       # =========================
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
       # =========================
       # NODE
       # =========================
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -41,12 +44,14 @@ jobs:
       # =========================
       # INSTALL
       # =========================
+
       - name: Install dependencies
         run: npm ci
 
       # =========================
       # CREATE REEL
       # =========================
+
       - name: Generate premium Reel
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
@@ -57,19 +62,34 @@ jobs:
       # =========================
       # SAVE GENERATED FILES
       # =========================
+
       - name: Commit generated Reel
+        shell: bash
         run: |
           git config user.name "FlickCanvas Bot"
           git config user.email "actions@github.com"
 
-          git add -f public/auto-reel-premium.mp4
+          VIDEO_FILE=$(node -p "require('./public/auto-reel-meta.json').videoFile")
+
+          echo "Generated Reel file: $VIDEO_FILE"
+
+          if [ -z "$VIDEO_FILE" ]; then
+            echo "videoFile missing from metadata."
+            exit 1
+          fi
+
+          if [ ! -f "public/$VIDEO_FILE" ]; then
+            echo "Generated Reel not found: public/$VIDEO_FILE"
+            exit 1
+          fi
+
+          git add -f "public/$VIDEO_FILE"
           git add -f public/auto-reel-meta.json
 
           if git diff --cached --quiet; then
             echo "No Reel changes to commit."
           else
             git commit -m "Auto generate FlickCanvas Reel"
-
             git pull --rebase origin main
             git push origin HEAD:main
           fi
@@ -77,6 +97,7 @@ jobs:
       # =========================
       # WAIT FOR VERCEL
       # =========================
+
       - name: Wait for Vercel deployment
         shell: bash
         run: |
@@ -87,9 +108,7 @@ jobs:
 
           for i in {1..30}; do
 
-            RESPONSE=$(curl -fsS \
-              "https://flickcanvas.vercel.app/auto-reel-meta.json" \
-              || true)
+            RESPONSE=$(curl -fsS "https://flickcanvas.vercel.app/auto-reel-meta.json" || true)
 
             if echo "$RESPONSE" | grep -Fq "$GENERATED_AT"; then
               echo "Vercel Reel deployment is ready."
@@ -104,8 +123,9 @@ jobs:
           exit 1
 
       # =========================
-      # FACEBOOK + INSTAGRAM
+      # PUBLISH
       # =========================
+
       - name: Publish Reel
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
