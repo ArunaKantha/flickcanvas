@@ -79,8 +79,98 @@ async function downloadFile(url, outputPath) {
     response.data
   );
 }
+// =========================
+// GET LAST 7 DAYS POST HISTORY
+// FACEBOOK + INSTAGRAM
+// =========================
+
+async function getRecentlyPostedTexts() {
+
+  const siteUrl = (
+    process.env.SITE_URL ||
+    "https://flickcanvas.vercel.app"
+  ).replace(/\/$/, "");
 
 
+  const cronSecret =
+    process.env.CRON_SECRET ||
+    process.env.FACEBOOK_CRON_SECRET;
+
+
+  if (!cronSecret) {
+    throw new Error(
+      "CRON_SECRET missing from local .env"
+    );
+  }
+
+
+  console.log(
+    "Getting 7-day post history from FlickCanvas..."
+  );
+
+
+  const response =
+    await axios.get(
+      `${siteUrl}/api/reels/recent-posts`,
+      {
+        headers: {
+          Authorization:
+            `Bearer ${cronSecret}`
+        }
+      }
+    );
+
+
+  const texts =
+    response.data?.texts;
+
+
+  if (!Array.isArray(texts)) {
+    throw new Error(
+      "Invalid recent-posts response"
+    );
+  }
+
+
+  console.log(
+    `Found ${texts.length} recent Facebook/Instagram post records`
+  );
+
+
+  return texts;
+}
+// =========================
+// CHECK MOVIE USED IN 7 DAYS
+// =========================
+
+function movieWasUsedRecently(
+  title,
+  recentTexts
+) {
+
+  const normalizedTitle =
+    String(title || "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+
+  if (!normalizedTitle) {
+    return false;
+  }
+
+  return recentTexts.some(text => {
+
+    const normalizedText =
+      String(text || "")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+
+    return normalizedText.includes(
+      normalizedTitle
+    );
+  });
+}
 // =========================
 // CLEAN PREMIUM REEL
 // =========================
@@ -122,28 +212,61 @@ async function createPremiumReel() {
 
 
     const movies =
-      response.data.results || [];
+  (response.data.results || [])
+    .filter(
+      item =>
+        item.id &&
+        item.title &&
+        item.poster_path
+    );
 
 
-    const movie =
-      movies.find(
-        item =>
-          item.id &&
-          item.title &&
-          item.poster_path
-      );
+console.log(
+  "Checking Facebook + Instagram 7-day history..."
+);
 
 
-    if (!movie) {
-      throw new Error(
-        "No suitable trending movie found"
-      );
-    }
+const recentTexts =
+  await getRecentlyPostedTexts();
 
+
+let movie = null;
+
+
+for (const item of movies) {
+
+  const alreadyUsed =
+    movieWasUsedRecently(
+      item.title,
+      recentTexts
+    );
+
+
+  if (alreadyUsed) {
 
     console.log(
-      `Movie selected: ${movie.title}`
+      `7-day duplicate skipped: ${item.title}`
     );
+
+    continue;
+  }
+
+
+  movie = item;
+
+  console.log(
+    `Reel movie selected: ${item.title}`
+  );
+
+  break;
+}
+
+
+if (!movie) {
+  throw new Error(
+    "No eligible trending movie found after 7-day duplicate check"
+  );
+}
 
 
     // =========================

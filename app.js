@@ -204,6 +204,317 @@ Discover more details, trailers and movie information on FLICKCANVAS.`;
     );
   }
 });
+// =========================
+// REEL 7-DAY POST HISTORY
+// Protected endpoint
+// =========================
+
+app.get("/api/reels/recent-posts", async (req, res) => {
+
+  const authorization =
+    req.get("authorization") || "";
+
+  const bearerSecret =
+    authorization.startsWith("Bearer ")
+      ? authorization.slice(7)
+      : "";
+
+  const cronSecret =
+    process.env.CRON_SECRET ||
+    process.env.FACEBOOK_CRON_SECRET;
+
+  if (
+    !cronSecret ||
+    bearerSecret !== cronSecret
+  ) {
+    return res.status(401).json({
+      error: "Unauthorized"
+    });
+  }
+
+  try {
+
+    const recentTexts = [];
+
+    const sevenDaysAgo = new Date(
+      Date.now() -
+      7 * 24 * 60 * 60 * 1000
+    );
+
+
+    // =========================
+    // FACEBOOK POSTS
+    // =========================
+
+    const pageId =
+      process.env.FACEBOOK_PAGE_ID;
+
+    const pageAccessToken =
+      process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+
+    const facebookGraphVersion =
+      process.env.FACEBOOK_GRAPH_VERSION ||
+      "v26.0";
+
+
+    if (
+      pageId &&
+      pageAccessToken
+    ) {
+
+      try {
+
+        const postsResponse =
+          await axios.get(
+            `https://graph.facebook.com/${facebookGraphVersion}/${pageId}/posts`,
+            {
+              params: {
+                fields:
+                  "id,message,created_time",
+
+                limit: 100,
+
+                access_token:
+                  pageAccessToken
+              }
+            }
+          );
+
+
+        const posts =
+          postsResponse.data.data || [];
+
+
+        for (const post of posts) {
+
+          if (
+            !post.message ||
+            !post.created_time
+          ) {
+            continue;
+          }
+
+
+          const postDate =
+            new Date(
+              post.created_time
+            );
+
+
+          if (
+            postDate >= sevenDaysAgo
+          ) {
+
+            recentTexts.push(
+              post.message
+            );
+
+          }
+
+        }
+
+      } catch (error) {
+
+        console.error(
+          "FACEBOOK HISTORY ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+      }
+
+
+      // =========================
+      // FACEBOOK VIDEOS / REELS
+      // =========================
+
+      try {
+
+        const videosResponse =
+          await axios.get(
+            `https://graph.facebook.com/${facebookGraphVersion}/${pageId}/videos`,
+            {
+              params: {
+                fields:
+                  "id,title,description,created_time",
+
+                limit: 100,
+
+                access_token:
+                  pageAccessToken
+              }
+            }
+          );
+
+
+        const videos =
+          videosResponse.data.data || [];
+
+
+        for (const video of videos) {
+
+          if (!video.created_time) {
+            continue;
+          }
+
+
+          const videoDate =
+            new Date(
+              video.created_time
+            );
+
+
+          if (
+            videoDate < sevenDaysAgo
+          ) {
+            continue;
+          }
+
+
+          const videoText =
+            `${video.title || ""} ${video.description || ""}`
+              .trim();
+
+
+          if (videoText) {
+
+            recentTexts.push(
+              videoText
+            );
+
+          }
+
+        }
+
+      } catch (error) {
+
+        console.error(
+          "FACEBOOK VIDEO HISTORY ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+      }
+
+    }
+
+
+    // =========================
+    // INSTAGRAM POSTS / REELS
+    // =========================
+
+    const instagramAccountId =
+      process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
+
+    const instagramAccessToken =
+      process.env.INSTAGRAM_ACCESS_TOKEN;
+
+    const instagramGraphVersion =
+      process.env.INSTAGRAM_GRAPH_VERSION ||
+      "v26.0";
+
+
+    if (
+      instagramAccountId &&
+      instagramAccessToken
+    ) {
+
+      try {
+
+        const instagramResponse =
+          await axios.get(
+            `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
+            {
+              params: {
+                fields:
+                  "id,caption,timestamp,media_type",
+
+                limit: 100,
+
+                access_token:
+                  instagramAccessToken
+              }
+            }
+          );
+
+
+        const media =
+          instagramResponse.data.data || [];
+
+
+        for (const item of media) {
+
+          if (
+            !item.caption ||
+            !item.timestamp
+          ) {
+            continue;
+          }
+
+
+          const mediaDate =
+            new Date(
+              item.timestamp
+            );
+
+
+          if (
+            mediaDate >= sevenDaysAgo
+          ) {
+
+            recentTexts.push(
+              item.caption
+            );
+
+          }
+
+        }
+
+      } catch (error) {
+
+        console.error(
+          "INSTAGRAM HISTORY ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+      }
+
+    }
+
+
+    // remove identical entries
+    const uniqueTexts =
+      [...new Set(recentTexts)];
+
+
+    return res.json({
+      success: true,
+      days: 7,
+      count: uniqueTexts.length,
+      texts: uniqueTexts
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "RECENT POST HISTORY ERROR:",
+      error.response?.data ||
+      error.message
+    );
+
+
+    return res.status(500).json({
+      success: false,
+      error:
+        error.response?.data ||
+        error.message
+    });
+
+  }
+
+});
    // =========================
 // FACEBOOK + INSTAGRAM
 // REEL AUTO POST
