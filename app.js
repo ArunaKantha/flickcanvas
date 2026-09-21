@@ -569,9 +569,7 @@ app.get("/api/reels/auto-post", async (req, res) => {
     ).replace(/\/$/, "");
 
 
-    const videoUrl =
-      process.env.REEL_VIDEO_URL ||
-      `${siteUrl}/auto-reel-premium.mp4`;
+    
 
 
     // =========================
@@ -602,7 +600,27 @@ app.get("/api/reels/auto-post", async (req, res) => {
           "utf8"
         )
       );
+// =========================
+// UNIQUE REEL VIDEO URL
+// =========================
 
+const videoFile =
+  movieData.videoFile;
+
+if (!videoFile) {
+  return res.status(500).json({
+    success: false,
+    error:
+      "Reel video filename missing from metadata"
+  });
+}
+
+const videoUrl =
+  `${siteUrl}/${videoFile}`;
+
+console.log(
+  `Reel video URL: ${videoUrl}`
+);
 
     const movieId =
       movieData.movieId;
