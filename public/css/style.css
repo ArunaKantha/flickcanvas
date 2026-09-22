@@ -1231,3 +1231,11 @@ footer p {
         animation-iteration-count: 1 !important;
     }
 }
+.related-movies {
+    margin-top: 40px;
+}
+@media (max-width: 768px) {
+    .related-movies {
+        margin-top: 28px;
+    }
+}
