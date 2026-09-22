@@ -1232,10 +1232,31 @@ footer p {
     }
 }
 .related-movies {
-    margin-top: 50px;
+    margin-top: 60%;
 }
 @media (max-width: 768px) {
     .related-movies {
         margin-top: 28px;
+    }
+}
+/* Related Movies spacing */
+.related-movies {
+    margin-top: 60px !important;
+}
+
+.related-movies h2 {
+    margin-bottom: 28px !important;
+}
+
+.related-movies .movie-grid {
+    margin-top: 0 !important;
+}
+@media (max-width: 768px) {
+    .related-movies {
+        margin-top: 40px !important;
+    }
+
+    .related-movies h2 {
+        margin-bottom: 20px !important;
     }
 }
