@@ -1231,32 +1231,30 @@ footer p {
         animation-iteration-count: 1 !important;
     }
 }
+/* =========================
+   RELATED MOVIES SPACING
+   ========================= */
+
 .related-movies {
-    margin-top: 60%;
-}
-@media (max-width: 768px) {
-    .related-movies {
-        margin-top: 28px;
-    }
-}
-/* Related Movies spacing */
-.related-movies {
-    margin-top: 60px !important;
+    padding-top: 70px !important;
+    margin-top: 0 !important;
+    width: 100%;
 }
 
 .related-movies h2 {
-    margin-bottom: 28px !important;
+    margin: 0 0 32px 0 !important;
 }
 
 .related-movies .movie-grid {
     margin-top: 0 !important;
 }
+
 @media (max-width: 768px) {
     .related-movies {
-        margin-top: 40px !important;
+        padding-top: 45px !important;
     }
 
     .related-movies h2 {
-        margin-bottom: 20px !important;
+        margin-bottom: 22px !important;
     }
 }
