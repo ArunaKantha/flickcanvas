@@ -1253,13 +1253,27 @@ app.get("/movie/:id", async (req, res) => {
         params: {
           api_key: process.env.TMDB_API_KEY,
           language: "en-US",
-          append_to_response: "credits,videos"
+          append_to_response: "credits,videos,recommendations"
         }
       }
     );
 
     const movie = response.data;
-    
+
+    // =========================
+    // RELATED MOVIES
+    // =========================
+    const relatedMovies = (
+      movie.recommendations?.results || []
+    )
+      .filter(
+        item =>
+          item.id &&
+          item.title &&
+          item.poster_path
+      )
+      .slice(0, 8);
+
     const providers = {
       watch: [],
       rent: [],
@@ -1282,7 +1296,8 @@ app.get("/movie/:id", async (req, res) => {
           }
         );
 
-        const titles = watchmodeResponse.data.title_results || [];
+        const titles =
+          watchmodeResponse.data.title_results || [];
 
         if (titles.length > 0) {
           const watchmodeId = titles[0].id;
@@ -1291,115 +1306,115 @@ app.get("/movie/:id", async (req, res) => {
             `https://api.watchmode.com/v1/title/${watchmodeId}/sources/`,
             {
               params: {
-                apiKey: process.env.WATCHMODE_API_KEY,
-                regions: process.env.WATCHMODE_REGION || "US"
+                apiKey:
+                  process.env.WATCHMODE_API_KEY,
+
+                regions:
+                  process.env.WATCHMODE_REGION ||
+                  "US"
               }
             }
           );
 
-          const sources = Array.isArray(sourcesResponse.data)
-            ? sourcesResponse.data
-            : [];
+          const sources =
+            Array.isArray(sourcesResponse.data)
+              ? sourcesResponse.data
+              : [];
 
           const seen = new Set();
 
           function addProvider(group, source) {
-            if (!source || !source.web_url) return;
-            const key = `${source.name || "Provider"}|${source.web_url}`;
-            if (seen.has(`${group}|${key}`)) return;
-            seen.add(`${group}|${key}`);
+            if (!source || !source.web_url) {
+              return;
+            }
+
+            const key =
+              `${source.name || "Provider"}|${source.web_url}`;
+
+            if (
+              seen.has(`${group}|${key}`)
+            ) {
+              return;
+            }
+
+            seen.add(
+              `${group}|${key}`
+            );
+
             providers[group].push({
-              name: source.name || "Official Provider",
-              url: source.web_url,
-              type: source.type || ""
+              name:
+                source.name ||
+                "Official Provider",
+
+              url:
+                source.web_url,
+
+              type:
+                source.type || ""
             });
           }
 
-          // Watch = subscription + free/ad-supported services.
           sources.forEach(source => {
-            if (["sub", "free"].includes(source.type)) {
-              addProvider("watch", source);
-            } else if (source.type === "rent") {
-              addProvider("rent", source);
-            } else if (source.type === "purchase") {
-              addProvider("buy", source);
+            if (
+              ["sub", "free"].includes(
+                source.type
+              )
+            ) {
+              addProvider(
+                "watch",
+                source
+              );
+            } else if (
+              source.type === "rent"
+            ) {
+              addProvider(
+                "rent",
+                source
+              );
+            } else if (
+              source.type === "purchase"
+            ) {
+              addProvider(
+                "buy",
+                source
+              );
             }
           });
         }
+
       } catch (watchmodeError) {
         console.error(
           "WATCHMODE ERROR:",
-          watchmodeError.response?.data || watchmodeError.message
+          watchmodeError.response?.data ||
+          watchmodeError.message
         );
       }
     }
 
     res.render("movie", {
-  movie,
-  imageBase: IMAGE_BASE_URL,
-  backdropBase: BACKDROP_BASE_URL,
-  providers,
-  cast: movie.credits?.cast || [],
-  crew: movie.credits?.crew || []
-});
+      movie,
+      imageBase:
+        IMAGE_BASE_URL,
+      backdropBase:
+        BACKDROP_BASE_URL,
+      providers,
+      cast:
+        movie.credits?.cast || [],
+      crew:
+        movie.credits?.crew || [],
+      relatedMovies
+    });
 
   } catch (error) {
     console.error(
       "MOVIE DETAILS ERROR:",
-      error.response?.data || error.message
-    );
-    res.status(404).send("Movie not found");
-  }
-});
-// =========================
-// WATCH PAGE
-// =========================
-app.get("/watch/:id", async (req, res) => {
-  const movieId = req.params.id;
-
-  try {
-    // Get movie information from TMDB
-    const movieResponse = await axios.get(
-      `${TMDB_BASE_URL}/movie/${movieId}`,
-      {
-        params: {
-          api_key: process.env.TMDB_API_KEY,
-          language: "en-US"
-        }
-      }
+      error.response?.data ||
+      error.message
     );
 
-    // Get YouTube videos / trailers from TMDB
-    const videoResponse = await axios.get(
-      `${TMDB_BASE_URL}/movie/${movieId}/videos`,
-      {
-        params: {
-          api_key: process.env.TMDB_API_KEY,
-          language: "en-US"
-        }
-      }
-    );
-
-    const videos = videoResponse.data.results || [];
-
-const movie = movieResponse.data;
-
-console.log("WATCH MOVIE:", movie.title);
-console.log("VIDEOS FOUND:", videos.length);
-
-res.render("watch", {
-    movie,
-    videos,
-    imageBase: IMAGE_BASE_URL
-});
-
-  } catch (error) {
-    console.error(
-      "WATCH ERROR:",
-      error.response?.data || error.message
-    );
-
-    res.status(404).send("Movie not found");
+    res
+      .status(404)
+      .send("Movie not found");
   }
 });
 

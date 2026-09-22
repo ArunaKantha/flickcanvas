@@ -131,7 +131,49 @@
 
 </section>
 
+<% if (relatedMovies && relatedMovies.length > 0) { %>
 
+<section class="movie-section related-movies">
+
+    <h2>🎬 Related Movies</h2>
+
+    <div class="movie-grid">
+
+        <% relatedMovies.forEach(related => { %>
+
+            <a
+                href="/movie/<%= related.id %>"
+                class="movie-card"
+            >
+
+                <img
+                    src="<%= imageBase + related.poster_path %>"
+                    alt="<%= related.title %> movie poster"
+                    loading="lazy"
+                >
+
+                <div class="movie-info">
+
+                    <h3>
+                        <%= related.title %>
+                    </h3>
+
+                    <span>
+                        ⭐
+                        <%= Number(related.vote_average || 0).toFixed(1) %>
+                    </span>
+
+                </div>
+
+            </a>
+
+        <% }) %>
+
+    </div>
+
+</section>
+
+<% } %>
    </div>
    </div>
    </section>
