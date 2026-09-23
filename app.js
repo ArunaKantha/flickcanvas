@@ -1193,11 +1193,14 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
-const reelUploadDir = path.join(
-  __dirname,
-  "public",
-  "reel-uploads"
-);
+const reelUploadDir =
+  process.env.VERCEL
+    ? path.join("/tmp", "reel-uploads")
+    : path.join(
+        __dirname,
+        "public",
+        "reel-uploads"
+      );
 
 fs.mkdirSync(reelUploadDir, {
   recursive: true
@@ -1502,7 +1505,10 @@ app.post(
       // OUTPUT DIRECTORY
       // =========================
 
-      const outputDir = path.join(
+      const outputDir =
+  process.env.VERCEL
+    ? path.join("/tmp", "reel-output")
+    : path.join(
         __dirname,
         "public",
         "reel-output"
