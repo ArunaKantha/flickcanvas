@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Publish Results - FlickCanvas</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #07090d;
+      color: white;
+    }
+
+    .container {
+      width: min(850px, 92%);
+      margin: auto;
+      padding: 40px 0;
+    }
+
+    .card {
+      background: #11151d;
+      border: 1px solid #202633;
+      border-radius: 14px;
+      padding: 24px;
+    }
+
+    .item {
+      margin: 14px 0;
+      padding: 15px;
+      border-radius: 10px;
+      background: #080b10;
+    }
+
+    .ok {
+      color: #4ade80;
+    }
+
+    .fail {
+      color: #f87171;
+    }
+
+    a {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 20px;
+      background: #7c3aed;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="card">
+
+    <h1>Publish Results</h1>
+
+    <h2><%= movie.title %></h2>
+
+    <div class="item">
+      Facebook:
+      <strong class="<%= facebook?.success ? 'ok' : 'fail' %>">
+        <%= facebook?.success ? 'Success' : 'Failed' %>
+      </strong>
+    </div>
+
+    <div class="item">
+      Instagram:
+      <strong class="<%= instagram?.success ? 'ok' : 'fail' %>">
+        <%= instagram?.success ? 'Success' : 'Failed' %>
+      </strong>
+    </div>
+
+    <div class="item">
+      Pinterest:
+      <strong class="<%= pinterest?.success ? 'ok' : 'fail' %>">
+        <%= pinterest?.success ? 'Success' : 'Failed' %>
+      </strong>
+    </div>
+
+    <% if (!facebook?.success && facebook?.error) { %>
+      <pre><%= JSON.stringify(facebook.error, null, 2) %></pre>
+    <% } %>
+
+    <% if (!instagram?.success && instagram?.error) { %>
+      <pre><%= JSON.stringify(instagram.error, null, 2) %></pre>
+    <% } %>
+
+    <% if (!pinterest?.success && pinterest?.error) { %>
+      <pre><%= JSON.stringify(pinterest.error, null, 2) %></pre>
+    <% } %>
+
+    <a href="/reel-studio?key=<%= key %>">
+      Back to Reel Studio
+    </a>
+
+  </div>
+
+</div>
+
+</body>
+</html>

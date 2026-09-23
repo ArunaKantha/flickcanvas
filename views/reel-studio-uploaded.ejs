@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Reel Preview - FlickCanvas</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #07090d;
+      color: white;
+    }
+
+    .container {
+      width: min(900px, 92%);
+      margin: auto;
+      padding: 40px 0;
+    }
+
+    .card {
+      background: #11151d;
+      border: 1px solid #202633;
+      border-radius: 14px;
+      padding: 24px;
+    }
+
+    video {
+      width: 100%;
+      max-width: 420px;
+      display: block;
+      margin: 20px auto;
+      border-radius: 12px;
+      background: black;
+    }
+
+    a {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      background: #7c3aed;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="card">
+
+    <h1>
+      Reel Video Preview
+    </h1>
+
+    <h2>
+      <%= selectedMovie.title %>
+    </h2>
+
+    <p>
+      ⭐
+      <%= Number(
+        selectedMovie.vote_average || 0
+      ).toFixed(1) %>/10
+    </p>
+
+    <video
+      controls
+      playsinline
+      src="<%= uploadedVideoUrl %>"
+    ></video>
+    <form
+  method="POST"
+  action="/reel-studio/create-final?key=<%= key %>"
+  style="margin-top:25px;"
+>
+
+  <input
+    type="hidden"
+    name="key"
+    value="<%= key %>"
+  >
+
+  <input
+    type="hidden"
+    name="movieId"
+    value="<%= selectedMovie.id %>"
+  >
+
+  <input
+    type="hidden"
+    name="videoFile"
+    value="<%= uploadedVideoFile %>"
+  >
+
+  <button
+    type="submit"
+    style="
+      width:100%;
+      padding:14px;
+      border:0;
+      border-radius:8px;
+      background:#7c3aed;
+      color:white;
+      font-weight:bold;
+      cursor:pointer;
+      font-size:16px;
+    "
+  >
+    Create Final Reel
+  </button>
+
+</form>
+    <a
+      href="/reel-studio?key=<%= key %>"
+    >
+      Back to Reel Studio
+    </a>
+
+  </div>
+
+</div>
+
+</body>
+</html>

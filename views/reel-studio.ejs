@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>FlickCanvas Reel Studio</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #07090d;
+      color: #ffffff;
+    }
+
+    .container {
+      width: min(1100px, 92%);
+      margin: auto;
+      padding: 35px 0 70px;
+    }
+
+    h1 {
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: #9ca3af;
+      margin-bottom: 30px;
+    }
+
+    .movie-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 18px;
+    }
+
+    .movie-card {
+      background: #11151d;
+      border: 1px solid #202633;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .movie-card img {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      object-fit: cover;
+      display: block;
+    }
+
+    .movie-info {
+      padding: 12px;
+    }
+
+    .movie-title {
+      font-size: 14px;
+      font-weight: 700;
+      min-height: 35px;
+    }
+
+    .rating {
+      margin: 8px 0 12px;
+      color: #facc15;
+      font-size: 13px;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #7c3aed;
+      color: white;
+    }
+
+    button:hover {
+      background: #6d28d9;
+    }
+
+    .result {
+      margin-top: 35px;
+      padding: 22px;
+      background: #11151d;
+      border: 1px solid #202633;
+      border-radius: 14px;
+    }
+
+    .selected {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      gap: 22px;
+    }
+
+    .selected img {
+      width: 170px;
+      border-radius: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      margin-top: 15px;
+      padding: 15px;
+      resize: vertical;
+      background: #080b10;
+      border: 1px solid #303745;
+      border-radius: 10px;
+      color: white;
+      line-height: 1.6;
+    }
+
+    .copy-btn {
+      width: auto;
+      margin-top: 12px;
+      padding: 11px 22px;
+    }
+
+    @media (max-width: 650px) {
+      .selected {
+        grid-template-columns: 1fr;
+      }
+
+      .selected img {
+        width: 150px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>🎬 FlickCanvas Reel Studio</h1>
+
+    <div class="subtitle">
+      Select a movie and create an AI video prompt.
+    </div>
+
+    <div class="movie-grid">
+
+      <% movies.forEach(movie => { %>
+
+        <div class="movie-card">
+
+          <img
+            src="<%= imageBase + movie.poster_path %>"
+            alt="<%= movie.title %>"
+          >
+
+          <div class="movie-info">
+
+            <div class="movie-title">
+              <%= movie.title %>
+            </div>
+
+            <div class="rating">
+              ⭐ <%= Number(movie.vote_average || 0).toFixed(1) %>/10
+            </div>
+
+            <form
+              method="POST"
+              action="/reel-studio/generate"
+            >
+
+              <input
+                type="hidden"
+                name="key"
+                value="<%= key %>"
+              >
+
+              <input
+                type="hidden"
+                name="movieId"
+                value="<%= movie.id %>"
+              >
+
+              <button type="submit">
+                Create AI Prompt
+              </button>
+
+            </form>
+
+          </div>
+
+        </div>
+
+      <% }) %>
+
+    </div>
+
+    <% if (selectedMovie && videoPrompt) { %>
+
+      <div class="result">
+
+        <div class="selected">
+
+          <img
+            src="<%= imageBase + selectedMovie.poster_path %>"
+            alt="<%= selectedMovie.title %>"
+          >
+
+          <div>
+
+            <h2>
+              <%= selectedMovie.title %>
+            </h2>
+
+            <p>
+              ⭐ <%= Number(
+                selectedMovie.vote_average || 0
+              ).toFixed(1) %>/10
+            </p>
+
+            <p>
+              <%= selectedMovie.genres
+                .map(g => g.name)
+                .join(" • ") %>
+            </p>
+
+          </div>
+
+        </div>
+
+        <h3>AI Video Prompt</h3>
+
+        <textarea
+          id="videoPrompt"
+          readonly
+        ><%= videoPrompt %></textarea>
+
+        <button
+          class="copy-btn"
+          onclick="copyPrompt()"
+        >
+          Copy Prompt
+        </button>
+        <hr style="margin:30px 0;border-color:#202633;">
+
+<h3>Upload AI Generated Video</h3>
+
+<form
+  method="POST"
+  action="/reel-studio/upload?key=<%= key %>"
+  enctype="multipart/form-data"
+>
+
+  <input
+    type="hidden"
+    name="key"
+    value="<%= key %>"
+  >
+
+  <input
+    type="hidden"
+    name="movieId"
+    value="<%= selectedMovie.id %>"
+  >
+
+  <input
+    type="file"
+    name="video"
+    accept="video/mp4,video/webm,video/quicktime"
+    required
+    style="
+      width:100%;
+      margin:15px 0;
+      padding:14px;
+      background:#080b10;
+      border:1px solid #303745;
+      border-radius:10px;
+      color:white;
+    "
+  >
+
+  <button type="submit">
+    Upload Video
+  </button>
+
+</form>
+      </div>
+
+    <% } %>
+
+  </div>
+
+  <script>
+    async function copyPrompt() {
+      const prompt =
+        document.getElementById("videoPrompt");
+
+      await navigator.clipboard.writeText(
+        prompt.value
+      );
+
+      alert("Prompt copied!");
+    }
+  </script>
+
+</body>
+</html>

@@ -2,6 +2,10 @@ const express = require("express");
 const path = require("path");
 const axios = require("axios");
 const fs = require("fs");
+const multer = require("multer");
+const { spawnSync } = require("child_process");
+const ffmpegPath = require("ffmpeg-static");
+const FormData = require("form-data");
 require("dotenv").config();
 
 const app = express();
@@ -1036,6 +1040,148 @@ Requirements:
   }
 }
 // =========================
+// GEMINI AI REEL VIDEO PROMPT
+// =========================
+
+async function generateReelVideoPrompt(movie) {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  const fallbackPrompt = `
+Create a cinematic vertical 9:16 video inspired by the mood and genre of a movie.
+
+Movie title: ${movie.title}
+Overview: ${movie.overview || "N/A"}
+
+Create an original cinematic scene.
+Do not recreate copyrighted characters, actors, costumes, logos, or exact movie scenes.
+Use realistic lighting, cinematic camera movement, strong atmosphere and detailed environments.
+No text, no subtitles, no logos, no watermark.
+Duration: 8 seconds.
+Vertical 9:16.
+  `.trim();
+
+  if (!apiKey) {
+    return fallbackPrompt;
+  }
+
+  try {
+    const prompt = `
+Create ONE ready-to-copy AI video generation prompt for a short cinematic vertical Reel.
+
+Movie information:
+Title: ${movie.title}
+Genres: ${
+      Array.isArray(movie.genres)
+        ? movie.genres.map(g => g.name).join(", ")
+        : "N/A"
+    }
+Overview: ${movie.overview || "N/A"}
+
+Requirements:
+- 8 second video.
+- Vertical 9:16.
+- Photorealistic cinematic quality.
+- Create a completely original scene inspired only by the movie's mood, genre and atmosphere.
+- Include at most one fictional adult character.
+- The character must be completely original and must not resemble any real actor, celebrity, public figure, or existing movie character.
+- Do NOT reproduce copyrighted characters, actors, costumes, logos, locations or exact scenes.
+- Do not include copyrighted costumes, signature props, masks, logos, or recognizable franchise elements.
+- Use only generic clothing and original visual design.
+- Avoid exact scenes from the movie.
+- Use slow natural camera movement.
+- Strong opening visual in the first second.
+- Realistic lighting and environmental motion.
+- No children.
+- No gore.
+- No dialogue.
+- No text.
+- No subtitles.
+- No logos.
+- No watermark.
+- Return only the final AI video prompt.
+`;
+
+    const response = await axios.post(
+      "https://generativelanguage.googleapis.com/v1beta/interactions",
+      {
+        model: "gemini-3.6-flash",
+        input: prompt
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        }
+      }
+    );
+
+    let generatedPrompt = "";
+
+    if (typeof response.data?.output_text === "string") {
+      generatedPrompt = response.data.output_text.trim();
+    }
+
+    if (
+      !generatedPrompt &&
+      Array.isArray(response.data?.steps)
+    ) {
+      for (const step of response.data.steps) {
+        if (
+          step.type === "model_output" &&
+          Array.isArray(step.content)
+        ) {
+          const textParts = step.content
+            .filter(
+              part =>
+                part.type === "text" &&
+                typeof part.text === "string"
+            )
+            .map(part => part.text.trim())
+            .filter(Boolean);
+
+          if (textParts.length) {
+            generatedPrompt = textParts.join("\n").trim();
+            break;
+          }
+        }
+      }
+    }
+
+    if (!generatedPrompt) {
+      throw new Error("Gemini returned an empty Reel prompt");
+    }
+
+    return generatedPrompt;
+
+  } catch (error) {
+    console.error(
+      "GEMINI REEL PROMPT ERROR:",
+      error.response?.data || error.message
+    );
+
+    return fallbackPrompt;
+  }
+}
+function getReelFontPath() {
+  if (process.platform === "win32") {
+    return "C:\\Windows\\Fonts\\arial.ttf";
+  }
+
+  const fonts = [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"
+  ];
+
+  return fonts.find(fs.existsSync) || "";
+}
+
+function escapeFFmpegPath(filePath) {
+  return filePath
+    .replace(/\\/g, "/")
+    .replace(/:/g, "\\:")
+    .replace(/'/g, "\\'");
+}
+// =========================
 // EJS SETUP
 // =========================
 app.set("view engine", "ejs");
@@ -1047,7 +1193,37 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+const reelUploadDir = path.join(
+  __dirname,
+  "public",
+  "reel-uploads"
+);
 
+fs.mkdirSync(reelUploadDir, {
+  recursive: true
+});
+
+const reelUpload = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, reelUploadDir);
+    },
+
+    filename: function (req, file, cb) {
+      const ext =
+        path.extname(file.originalname) || ".mp4";
+
+      cb(
+        null,
+        `manual-reel-${Date.now()}${ext}`
+      );
+    }
+  }),
+
+  limits: {
+    fileSize: 100 * 1024 * 1024
+  }
+});
 // =========================
 // TMDB CONFIG
 // =========================
@@ -1060,7 +1236,722 @@ const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 // Backdrop image:
 // https://image.tmdb.org/t/p/original/BACKDROP_PATH
 const BACKDROP_BASE_URL = "https://image.tmdb.org/t/p/original";
+// =========================
+// PRIVATE REEL STUDIO
+// =========================
 
+function checkReelStudioSecret(req, res, next) {
+  const studioSecret = process.env.REEL_STUDIO_SECRET;
+
+  const suppliedSecret =
+    req.query.key ||
+    req.body?.key ||
+    "";
+
+  if (
+    !studioSecret ||
+    suppliedSecret !== studioSecret
+  ) {
+    return res.status(401).send("Unauthorized");
+  }
+
+  next();
+}
+
+
+// =========================
+// REEL STUDIO PAGE
+// =========================
+
+app.get(
+  "/reel-studio",
+  checkReelStudioSecret,
+  async (req, res) => {
+    try {
+      const trendingResponse = await axios.get(
+        `${TMDB_BASE_URL}/trending/movie/day`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: "en-US"
+          }
+        }
+      );
+
+      const movies = (
+        trendingResponse.data.results || []
+      )
+        .filter(
+          movie =>
+            movie.id &&
+            movie.title &&
+            movie.poster_path
+        )
+        .slice(0, 12);
+
+      res.render("reel-studio", {
+        movies,
+        selectedMovie: null,
+        videoPrompt: "",
+        imageBase: IMAGE_BASE_URL,
+        key: req.query.key
+      });
+
+    } catch (error) {
+      console.error(
+        "REEL STUDIO ERROR:",
+        error.response?.data || error.message
+      );
+
+      res.status(500).send(
+        "Could not load Reel Studio."
+      );
+    }
+  }
+);
+
+
+// =========================
+// SELECT MOVIE + GENERATE PROMPT
+// =========================
+
+app.post(
+  "/reel-studio/generate",
+  checkReelStudioSecret,
+  async (req, res) => {
+    try {
+      const movieId = req.body.movieId;
+
+      if (!movieId) {
+        return res.status(400).send(
+          "Movie ID is required."
+        );
+      }
+
+      const movieResponse = await axios.get(
+        `${TMDB_BASE_URL}/movie/${movieId}`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: "en-US"
+          }
+        }
+      );
+
+      const selectedMovie =
+        movieResponse.data;
+
+      const trendingResponse =
+        await axios.get(
+          `${TMDB_BASE_URL}/trending/movie/day`,
+          {
+            params: {
+              api_key:
+                process.env.TMDB_API_KEY,
+              language: "en-US"
+            }
+          }
+        );
+
+      const movies = (
+        trendingResponse.data.results || []
+      )
+        .filter(
+          movie =>
+            movie.id &&
+            movie.title &&
+            movie.poster_path
+        )
+        .slice(0, 12);
+
+      const videoPrompt =
+        await generateReelVideoPrompt(
+          selectedMovie
+        );
+
+      res.render("reel-studio", {
+        movies,
+        selectedMovie,
+        videoPrompt,
+        imageBase: IMAGE_BASE_URL,
+        key: req.body.key
+      });
+
+    } catch (error) {
+      console.error(
+        "REEL PROMPT GENERATION ERROR:",
+        error.response?.data || error.message
+      );
+
+      res.status(500).send(
+        "Could not generate AI video prompt."
+      );
+    }
+  }
+);
+app.post(
+  "/reel-studio/upload",
+  checkReelStudioSecret,
+  reelUpload.single("video"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).send(
+          "Video file is required."
+        );
+      }
+
+      const movieId = req.body.movieId;
+
+      const movieResponse = await axios.get(
+        `${TMDB_BASE_URL}/movie/${movieId}`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: "en-US"
+          }
+        }
+      );
+
+      const selectedMovie =
+        movieResponse.data;
+
+      const uploadedVideoUrl =
+        `/reel-uploads/${req.file.filename}`;
+      const uploadedVideoFile =
+  req.file.filename;
+      res.render("reel-studio-uploaded", {
+  selectedMovie,
+  uploadedVideoUrl,
+  uploadedVideoFile,
+  imageBase: IMAGE_BASE_URL,
+  key:
+    req.query.key ||
+    req.body.key
+});
+
+    } catch (error) {
+      console.error(
+        "REEL VIDEO UPLOAD ERROR:",
+        error.response?.data ||
+        error.message
+      );
+
+      res.status(500).send(
+        "Could not upload Reel video."
+      );
+    }
+  }
+);
+// =========================
+// CREATE FINAL MANUAL REEL
+// =========================
+
+app.post(
+  "/reel-studio/create-final",
+  checkReelStudioSecret,
+  async (req, res) => {
+    try {
+      const movieId = req.body.movieId;
+      const videoFile = req.body.videoFile;
+
+      if (!movieId || !videoFile) {
+        return res.status(400).send(
+          "Movie ID or uploaded video is missing."
+        );
+      }
+
+      // Prevent arbitrary file paths
+      const safeVideoFile =
+        path.basename(videoFile);
+
+      const inputPath = path.join(
+        __dirname,
+        "public",
+        "reel-uploads",
+        safeVideoFile
+      );
+
+      if (!fs.existsSync(inputPath)) {
+        return res.status(404).send(
+          "Uploaded AI video not found."
+        );
+      }
+
+      // Get full movie details
+      const movieResponse = await axios.get(
+        `${TMDB_BASE_URL}/movie/${movieId}`,
+        {
+          params: {
+            api_key:
+              process.env.TMDB_API_KEY,
+            language: "en-US"
+          }
+        }
+      );
+
+      const movie =
+        movieResponse.data;
+
+      const rating =
+        Number(
+          movie.vote_average || 0
+        ).toFixed(1);
+
+      // =========================
+      // OUTPUT DIRECTORY
+      // =========================
+
+      const outputDir = path.join(
+        __dirname,
+        "public",
+        "reel-output"
+      );
+
+      fs.mkdirSync(outputDir, {
+        recursive: true
+      });
+
+      const outputFile =
+        `final-reel-${movie.id}-${Date.now()}.mp4`;
+
+      const outputPath =
+        path.join(
+          outputDir,
+          outputFile
+        );
+
+      // =========================
+      // FONT
+      // =========================
+
+      const fontPath =
+        getReelFontPath();
+
+      if (
+        !fontPath ||
+        !fs.existsSync(fontPath)
+      ) {
+        throw new Error(
+          `FFmpeg font not found: ${fontPath}`
+        );
+      }
+
+      const font =
+        escapeFFmpegPath(fontPath);
+
+      // Escape title for drawtext
+      const safeTitle =
+        String(movie.title || "")
+          .replace(/\\/g, "\\\\")
+          .replace(/:/g, "\\:")
+          .replace(/'/g, "\\'")
+          .replace(/%/g, "\\%");
+
+      // =========================
+      // VIDEO FILTER
+      // =========================
+
+      const filter = [
+
+        // Intro: 2 seconds
+        `[1:v]` +
+        `drawtext=` +
+        `fontfile='${font}':` +
+        `text='FLICKCANVAS':` +
+        `fontcolor=white:` +
+        `fontsize=58:` +
+        `x=(w-text_w)/2:` +
+        `y=(h-text_h)/2-25,` +
+
+        `drawtext=` +
+        `fontfile='${font}':` +
+        `text='MOVIE REEL':` +
+        `fontcolor=white@0.75:` +
+        `fontsize=27:` +
+        `x=(w-text_w)/2:` +
+        `y=(h-text_h)/2+55` +
+        `[intro]`,
+
+        // AI clip - exactly 8 sec
+        `[0:v]` +
+        `scale=720:1280:` +
+        `force_original_aspect_ratio=increase,` +
+        `crop=720:1280,` +
+        `fps=30,` +
+        `tpad=stop_mode=clone:stop_duration=8,` +
+        `trim=duration=8,` +
+        `setpts=PTS-STARTPTS` +
+        `[clip]`,
+
+        // Outro: 5 sec
+        `[2:v]` +
+        `drawtext=` +
+        `fontfile='${font}':` +
+        `text='${safeTitle}':` +
+        `fontcolor=white:` +
+        `fontsize=43:` +
+        `x=(w-text_w)/2:` +
+        `y=470,` +
+
+        `drawtext=` +
+        `fontfile='${font}':` +
+        `text='RATING ${rating}/10':` +
+        `fontcolor=white:` +
+        `fontsize=31:` +
+        `x=(w-text_w)/2:` +
+        `y=555,` +
+
+        `drawtext=` +
+        `fontfile='${font}':` +
+        `text='WATCH TRAILER & DETAILS':` +
+        `fontcolor=white:` +
+        `fontsize=32:` +
+        `x=(w-text_w)/2:` +
+        `y=690,` +
+
+        `drawtext=` +
+        `fontfile='${font}':` +
+        `text='FLICKCANVAS':` +
+        `fontcolor=white@0.70:` +
+        `fontsize=25:` +
+        `x=(w-text_w)/2:` +
+        `y=760` +
+        `[outro]`,
+
+        // 2 + 8 + 5 = 15 seconds
+        `[intro][clip][outro]` +
+        `concat=n=3:v=1:a=0,` +
+        `format=yuv420p` +
+        `[v]`
+
+      ].join(";");
+
+      // =========================
+      // RUN FFMPEG
+      // =========================
+
+      const args = [
+        "-y",
+
+        // AI video
+        "-i",
+        inputPath,
+
+        // Intro background
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=#080808:s=720x1280:r=30:d=2",
+
+        // Outro background
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=#080808:s=720x1280:r=30:d=5",
+
+        "-filter_complex",
+        filter,
+
+        "-map",
+        "[v]",
+
+        "-t",
+        "15",
+
+        "-r",
+        "30",
+
+        "-c:v",
+        "libx264",
+
+        "-preset",
+        "medium",
+
+        "-crf",
+        "21",
+
+        "-pix_fmt",
+        "yuv420p",
+
+        "-an",
+
+        "-movflags",
+        "+faststart",
+
+        outputPath
+      ];
+
+      console.log(
+        `Creating manual final Reel: ${movie.title}`
+      );
+
+      const result =
+        spawnSync(
+          ffmpegPath,
+          args,
+          {
+            encoding: "utf8"
+          }
+        );
+
+      if (result.status !== 0) {
+        console.error(
+          "FFMPEG STDERR:",
+          result.stderr
+        );
+
+        throw new Error(
+          "Final Reel FFmpeg generation failed"
+        );
+      }
+
+      console.log(
+        `FINAL REEL CREATED: ${outputFile}`
+      );
+
+      const finalVideoUrl =
+        `/reel-output/${outputFile}`;
+
+      res.render(
+        "reel-studio-final",
+        {
+          movie,
+          rating,
+          finalVideoUrl,
+          finalVideoFile:
+            outputFile,
+          key:
+            req.query.key ||
+            req.body.key
+        }
+      );
+
+    } catch (error) {
+      console.error(
+        "FINAL REEL ERROR:",
+        error.response?.data ||
+        error.message
+      );
+
+      res.status(500).send(
+        `Could not create final Reel: ${
+          error.message
+        }`
+      );
+    }
+  }
+);
+// =========================
+// REEL STUDIO - PUBLISH ALL
+// =========================
+
+app.post(
+  "/reel-studio/publish-all",
+  checkReelStudioSecret,
+  async (req, res) => {
+    try {
+      const movieId = req.body.movieId;
+      const finalVideoFile =
+        path.basename(req.body.finalVideoFile || "");
+
+      if (!movieId || !finalVideoFile) {
+        return res.status(400).send(
+          "Movie ID or final Reel file is missing."
+        );
+      }
+
+      const finalVideoPath = path.join(
+        __dirname,
+        "public",
+        "reel-output",
+        finalVideoFile
+      );
+
+      if (!fs.existsSync(finalVideoPath)) {
+        return res.status(404).send(
+          "Final Reel video not found."
+        );
+      }
+
+      const movieResponse = await axios.get(
+        `${TMDB_BASE_URL}/movie/${movieId}`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: "en-US"
+          }
+        }
+      );
+
+      const movie =
+        movieResponse.data;
+
+      const rating =
+        Number(movie.vote_average || 0).toFixed(1);
+
+      const siteUrl = (
+        process.env.SITE_URL ||
+        "https://flickcanvas.vercel.app"
+      ).replace(/\/$/, "");
+
+      const movieLink =
+        `${siteUrl}/movie/${movie.id}`;
+
+      const finalVideoUrl =
+        `${siteUrl}/reel-output/${finalVideoFile}`;
+
+      const posterUrl =
+        movie.poster_path
+          ? `${IMAGE_BASE_URL}${movie.poster_path}`
+          : "";
+
+      const title =
+        `${movie.title} | FLICKCANVAS`;
+
+      const caption =
+`🎬 ${movie.title}
+
+⭐ Rating: ${rating}/10
+
+🎥 Watch trailer and movie details:
+${movieLink}
+
+📌 Follow FLICKCANVAS for more movie reels and recommendations!
+
+#FLICKCANVAS #MovieReels #Movies #MovieRecommendations`;
+
+      let facebook = null;
+      let instagram = null;
+      let pinterest = null;
+
+      // =========================
+      // FACEBOOK
+      // =========================
+
+      try {
+        facebook =
+          await publishFacebookReel({
+            videoUrl: finalVideoUrl,
+            title,
+            description: caption
+          });
+      } catch (error) {
+        facebook = {
+          success: false,
+          error:
+            error.response?.data ||
+            error.message
+        };
+      }
+
+      // =========================
+      // INSTAGRAM
+      // =========================
+
+      try {
+        instagram =
+          await publishInstagramReel({
+            videoUrl: finalVideoUrl,
+            caption
+          });
+
+        if (
+          instagram?.success &&
+          instagram?.mediaId
+        ) {
+          try {
+            const instagramAccessToken =
+              process.env.INSTAGRAM_ACCESS_TOKEN;
+
+            const instagramGraphVersion =
+              process.env.INSTAGRAM_GRAPH_VERSION ||
+              "v26.0";
+
+            await axios.post(
+              `https://graph.facebook.com/${instagramGraphVersion}/${instagram.mediaId}/comments`,
+              null,
+              {
+                params: {
+                  message:
+                    `🎬 Watch trailer & movie details:\n\n${movieLink}`,
+                  access_token:
+                    instagramAccessToken
+                }
+              }
+            );
+          } catch (commentError) {
+            console.error(
+              "INSTAGRAM COMMENT ERROR:",
+              commentError.response?.data ||
+              commentError.message
+            );
+          }
+        }
+
+      } catch (error) {
+        instagram = {
+          success: false,
+          error:
+            error.response?.data ||
+            error.message
+        };
+      }
+
+      // =========================
+      // PINTEREST
+      // =========================
+
+      try {
+        pinterest =
+          await publishPinterestVideoPin({
+            videoPath: finalVideoPath,
+            coverImageUrl: posterUrl,
+            title: `🎬 ${movie.title}`,
+            description:
+`⭐ Rating: ${rating}/10
+
+🎥 Watch trailer and movie details on FLICKCANVAS.
+
+#FLICKCANVAS #Movies #MovieReels`,
+            link: movieLink
+          });
+
+      } catch (error) {
+        pinterest = {
+          success: false,
+          error:
+            error.response?.data ||
+            error.message
+        };
+      }
+
+      res.render(
+        "reel-studio-published",
+        {
+          movie,
+          facebook,
+          instagram,
+          pinterest,
+          key:
+            req.query.key ||
+            req.body.key
+        }
+      );
+
+    } catch (error) {
+      console.error(
+        "REEL STUDIO PUBLISH ALL ERROR:",
+        error.response?.data ||
+        error.message
+      );
+
+      res.status(500).send(
+        `Publish failed: ${error.message}`
+      );
+    }
+  }
+);
 // =========================
 // HOME PAGE
 // =========================
@@ -2770,6 +3661,221 @@ async function publishInstagramReel({
     success: true,
     creationId,
     mediaId: publishResponse.data.id
+  };
+}
+// =========================
+// PINTEREST VIDEO PIN PUBLISH
+// =========================
+
+async function publishPinterestVideoPin({
+  videoPath,
+  coverImageUrl,
+  title,
+  description,
+  link
+}) {
+  const accessToken =
+    process.env.PINTEREST_ACCESS_TOKEN;
+
+  const boardId =
+    process.env.PINTEREST_BOARD_ID ||
+    "1138073837026954410";
+
+  if (!accessToken) {
+    throw new Error(
+      "PINTEREST_ACCESS_TOKEN is missing"
+    );
+  }
+
+  if (!fs.existsSync(videoPath)) {
+    throw new Error(
+      "Pinterest video file not found"
+    );
+  }
+
+  if (!coverImageUrl) {
+    throw new Error(
+      "Pinterest cover image URL is missing"
+    );
+  }
+
+  // Change to https://api.pinterest.com
+  // when moving from Sandbox to production.
+  const pinterestApi =
+    "https://api-sandbox.pinterest.com/v5";
+
+  // =========================
+  // STEP 1 - REGISTER VIDEO
+  // =========================
+
+  const registerResponse =
+    await axios.post(
+      `${pinterestApi}/media`,
+      {
+        media_type: "video"
+      },
+      {
+        headers: {
+          Authorization:
+            `Bearer ${accessToken}`,
+          "Content-Type":
+            "application/json"
+        }
+      }
+    );
+
+  const mediaId =
+    registerResponse.data.media_id;
+
+  const uploadUrl =
+    registerResponse.data.upload_url;
+
+  const uploadParameters =
+    registerResponse.data.upload_parameters;
+
+  if (
+    !mediaId ||
+    !uploadUrl ||
+    !uploadParameters
+  ) {
+    throw new Error(
+      "Pinterest video upload session was not created"
+    );
+  }
+
+  console.log(
+    `Pinterest media session: ${mediaId}`
+  );
+
+  // =========================
+  // STEP 2 - UPLOAD MP4
+  // =========================
+
+  const form = new FormData();
+
+  for (
+    const [key, value]
+    of Object.entries(uploadParameters)
+  ) {
+    form.append(key, value);
+  }
+
+  form.append(
+    "file",
+    fs.createReadStream(videoPath)
+  );
+
+  await axios.post(
+    uploadUrl,
+    form,
+    {
+      headers: form.getHeaders(),
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity
+    }
+  );
+
+  console.log(
+    "Pinterest video uploaded to media storage"
+  );
+
+  // =========================
+  // STEP 3 - WAIT FOR READY
+  // =========================
+
+  let ready = false;
+
+  for (
+    let attempt = 1;
+    attempt <= 20;
+    attempt++
+  ) {
+    await new Promise(resolve =>
+      setTimeout(resolve, 3000)
+    );
+
+    const statusResponse =
+      await axios.get(
+        `${pinterestApi}/media/${mediaId}`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${accessToken}`
+          }
+        }
+      );
+
+    const status =
+      String(
+        statusResponse.data.status || ""
+      ).toLowerCase();
+
+    console.log(
+      `Pinterest media status: ${status}`
+    );
+
+    if (status === "succeeded") {
+      ready = true;
+      break;
+    }
+
+    if (
+      status === "failed" ||
+      status === "error"
+    ) {
+      throw new Error(
+        `Pinterest video processing failed: ${status}`
+      );
+    }
+  }
+
+  if (!ready) {
+    throw new Error(
+      "Pinterest video processing timeout"
+    );
+  }
+
+  // =========================
+  // STEP 4 - CREATE VIDEO PIN
+  // =========================
+
+  const pinResponse =
+    await axios.post(
+      `${pinterestApi}/pins`,
+      {
+        board_id: boardId,
+
+        title,
+
+        description,
+
+        link,
+
+        media_source: {
+          source_type: "video_id",
+          media_id: mediaId,
+          cover_image_url:
+            coverImageUrl
+        }
+      },
+      {
+        headers: {
+          Authorization:
+            `Bearer ${accessToken}`,
+          "Content-Type":
+            "application/json"
+        }
+      }
+    );
+
+  console.log(
+    `Pinterest Video Pin created: ${pinResponse.data.id}`
+  );
+
+  return {
+    success: true,
+    mediaId,
+    pinId: pinResponse.data.id
   };
 }
 // =========================

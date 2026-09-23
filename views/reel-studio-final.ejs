@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Final Reel - FlickCanvas</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #07090d;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      width: min(850px, 92%);
+      margin: auto;
+      padding: 40px 0 70px;
+    }
+
+    .card {
+      background: #11151d;
+      border: 1px solid #202633;
+      border-radius: 15px;
+      padding: 24px;
+    }
+
+    video {
+      width: 100%;
+      max-width: 420px;
+      display: block;
+      margin: 25px auto;
+      background: #000;
+      border-radius: 12px;
+    }
+
+    .success {
+      color: #4ade80;
+      font-weight: bold;
+    }
+
+    a {
+      display: inline-block;
+      padding: 12px 20px;
+      margin-top: 15px;
+      background: #7c3aed;
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="card">
+
+    <div class="success">
+      ✓ Final Reel Created
+    </div>
+
+    <h1>
+      <%= movie.title %>
+    </h1>
+
+    <p>
+      ⭐ <%= rating %>/10
+    </p>
+
+    <video
+      controls
+      playsinline
+      src="<%= finalVideoUrl %>"
+    ></video>
+    <form
+  method="POST"
+  action="/reel-studio/publish-all?key=<%= key %>"
+  style="margin-top:25px;"
+>
+  <input
+    type="hidden"
+    name="key"
+    value="<%= key %>"
+  >
+
+  <input
+    type="hidden"
+    name="movieId"
+    value="<%= movie.id %>"
+  >
+
+  <input
+    type="hidden"
+    name="finalVideoFile"
+    value="<%= finalVideoFile %>"
+  >
+
+  <button
+    type="submit"
+    style="
+      width:100%;
+      padding:14px;
+      border:0;
+      border-radius:8px;
+      background:#7c3aed;
+      color:white;
+      font-weight:bold;
+      cursor:pointer;
+      font-size:16px;
+      margin-top:15px;
+    "
+  >
+    Publish Facebook + Instagram + Pinterest
+  </button>
+</form>
+    <a
+      href="/reel-studio?key=<%= key %>"
+    >
+      Back to Reel Studio
+    </a>
+
+  </div>
+
+</div>
+
+</body>
+</html>
