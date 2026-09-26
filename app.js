@@ -1240,12 +1240,12 @@ async function createReelCardImages({
   rating,
   outputDir
 }) {
-  const introPath = path.join(
+  const introCardPath = path.join(
     outputDir,
     `reel-intro-${Date.now()}.png`
   );
 
-  const outroPath = path.join(
+  const outroCardPath = path.join(
     outputDir,
     `reel-outro-${Date.now()}.png`
   );
@@ -1256,7 +1256,7 @@ async function createReelCardImages({
 
       <rect width="720"
             height="1280"
-            fill="#000000"/>
+            fill="#080808"/>
 
       <text
         x="360"
@@ -1282,26 +1282,24 @@ async function createReelCardImages({
     </svg>
   `;
 
-  const titleLines =
-    wrapReelTitle(movieTitle);
+  const titleLines = wrapReelTitle(movieTitle);
 
-  const titleSvgLines =
-    titleLines
-      .map(
-        (line, index) => `
-          <text
-            x="360"
-            y="${470 + index * 60}"
-            text-anchor="middle"
-            fill="#ffffff"
-            font-family="Arial, DejaVu Sans, sans-serif"
-            font-size="43"
-            font-weight="700">
-            ${escapeSvgText(line)}
-          </text>
-        `
-      )
-      .join("");
+  const titleSvgLines = titleLines
+    .map(
+      (line, index) => `
+        <text
+          x="360"
+          y="${470 + index * 58}"
+          text-anchor="middle"
+          fill="#ffffff"
+          font-family="Arial, DejaVu Sans, sans-serif"
+          font-size="43"
+          font-weight="700">
+          ${escapeSvgText(line)}
+        </text>
+      `
+    )
+    .join("");
 
   const outroSvg = `
     <svg width="720" height="1280"
@@ -1309,23 +1307,24 @@ async function createReelCardImages({
 
       <rect width="720"
             height="1280"
-            fill="#000000"/>
+            fill="#080808"/>
 
       ${titleSvgLines}
 
       <text
         x="360"
-        y="610"
+        y="555"
         text-anchor="middle"
         fill="#ffffff"
         font-family="Arial, DejaVu Sans, sans-serif"
-        font-size="31">
-        RATING ${escapeSvgText(rating)}/10
+        font-size="31"
+        font-weight="600">
+        RATING ${escapeSvgText(String(rating))}/10
       </text>
 
       <text
         x="360"
-        y="705"
+        y="690"
         text-anchor="middle"
         fill="#ffffff"
         font-family="Arial, DejaVu Sans, sans-serif"
@@ -1336,7 +1335,7 @@ async function createReelCardImages({
 
       <text
         x="360"
-        y="780"
+        y="760"
         text-anchor="middle"
         fill="#b8b8b8"
         font-family="Arial, DejaVu Sans, sans-serif"
@@ -1347,21 +1346,19 @@ async function createReelCardImages({
     </svg>
   `;
 
-  await sharp(
-    Buffer.from(introSvg)
-  )
-    .png()
-    .toFile(introPath);
+  await fs.promises.mkdir(outputDir, { recursive: true });
 
-  await sharp(
-    Buffer.from(outroSvg)
-  )
+  await sharp(Buffer.from(introSvg))
     .png()
-    .toFile(outroPath);
+    .toFile(introCardPath);
+
+  await sharp(Buffer.from(outroSvg))
+    .png()
+    .toFile(outroCardPath);
 
   return {
-    introPath,
-    outroPath
+    introCardPath,
+    outroCardPath
   };
 }
 async function getBlobPut() {
@@ -1986,37 +1983,17 @@ if (videoUrl) {
           outputFile
         );
 
-      // =========================
-      // FONT
-      // =========================
-
-      const fontPath =
-        getReelFontPath();
-
-      if (
-        !fontPath ||
-        !fs.existsSync(fontPath)
-      ) {
-        throw new Error(
-          `FFmpeg font not found: ${fontPath}`
-        );
-      }
-
-      const font =
-        escapeFFmpegPath(fontPath);
-
-      // Escape title for drawtext
-      const safeTitle =
-        String(movie.title || "")
-          .replace(/\\/g, "\\\\")
-          .replace(/:/g, "\\:")
-          .replace(/'/g, "\\'")
-          .replace(/%/g, "\\%");
+      
 
       // =========================
       // VIDEO FILTER
       // =========================
-
+      const { introCardPath, outroCardPath } =
+  await createReelCardImages({
+    movieTitle: movie.title,
+    rating,
+    outputDir
+  });
       const filter = [
 
   // Intro card PNG - 2 sec
