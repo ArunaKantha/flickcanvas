@@ -345,7 +345,6 @@
       const pathname =
         `reel-uploads/${Date.now()}-${safeName}`;
 
-      // 1. Get a short-lived signed Blob PUT URL
       const signResponse = await fetch(
         `/reel-studio/blob-upload?key=${encodeURIComponent(key)}`,
         {
@@ -371,14 +370,12 @@
 
       status.textContent = "Uploading video...";
 
-      // 2. Browser uploads video directly to Vercel Blob
       const uploadResponse = await fetch(
         signData.presignedUrl,
         {
           method: "PUT",
           headers: {
-            "Content-Type":
-              file.type || "video/mp4"
+            "Content-Type": file.type || "video/mp4"
           },
           body: file
         }
@@ -394,15 +391,16 @@
         );
       }
 
+      const uploadedBlob =
+        await uploadResponse.json();
+
       status.textContent =
         "Upload complete. Opening preview...";
 
-      // 3. Send the permanent Blob URL to preview page
       const nextForm =
         document.createElement("form");
 
       nextForm.method = "POST";
-
       nextForm.action =
         `/reel-studio/uploaded-blob?key=${encodeURIComponent(key)}`;
 
@@ -418,7 +416,7 @@
 
       urlInput.type = "hidden";
       urlInput.name = "videoUrl";
-      urlInput.value = signData.blobUrl;
+      urlInput.value = uploadedBlob.url;
 
       nextForm.appendChild(movieInput);
       nextForm.appendChild(urlInput);
