@@ -1164,16 +1164,30 @@ Requirements:
   }
 }
 function getReelFontPath() {
-  if (process.platform === "win32") {
-    return "C:\\Windows\\Fonts\\arial.ttf";
-  }
+  const bundledFont = path.join(
+    __dirname,
+    "node_modules",
+    "dejavu-fonts-ttf",
+    "ttf",
+    "DejaVuSans.ttf"
+  );
 
-  const fonts = [
+  const candidates = [
+    bundledFont,
+    "C:\\Windows\\Fonts\\arial.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"
   ];
 
-  return fonts.find(fs.existsSync) || "";
+  for (const fontPath of candidates) {
+    if (fs.existsSync(fontPath)) {
+      console.log("FFMPEG FONT FOUND:", fontPath);
+      return fontPath;
+    }
+  }
+
+  console.log("FFMPEG FONT NOT FOUND");
+  return "";
 }
 
 function escapeFFmpegPath(filePath) {
