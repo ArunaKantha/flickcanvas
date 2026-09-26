@@ -1250,22 +1250,63 @@ async function createReelCardImages({
     `reel-outro-${Date.now()}.png`
   );
 
-  const introSvg = `
-    <svg width="720" height="1280"
-         xmlns="http://www.w3.org/2000/svg">
+  const fontFilePath = path.join(
+    __dirname,
+    "node_modules",
+    "dejavu-fonts-ttf",
+    "ttf",
+    "DejaVuSans.ttf"
+  );
 
-      <rect width="720"
-            height="1280"
-            fill="#080808"/>
+  if (!fs.existsSync(fontFilePath)) {
+    throw new Error(
+      `Bundled Reel font not found: ${fontFilePath}`
+    );
+  }
+
+  const fontBase64 =
+    fs.readFileSync(fontFilePath).toString("base64");
+
+  const embeddedFontStyle = `
+    <defs>
+      <style type="text/css">
+        @font-face {
+          font-family: 'ReelFont';
+          src: url("data:font/ttf;base64,${fontBase64}");
+        }
+
+        text {
+          font-family: 'ReelFont';
+        }
+      </style>
+    </defs>
+  `;
+
+  const introSvg = `
+    <svg
+      width="720"
+      height="1280"
+      viewBox="0 0 720 1280"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+
+      ${embeddedFontStyle}
+
+      <rect
+        width="720"
+        height="1280"
+        fill="#080808"
+      />
 
       <text
         x="360"
         y="610"
         text-anchor="middle"
         fill="#ffffff"
-        font-family="Arial, DejaVu Sans, sans-serif"
+        font-family="ReelFont"
         font-size="58"
-        font-weight="700">
+        font-weight="700"
+      >
         FLICKCANVAS
       </text>
 
@@ -1274,85 +1315,112 @@ async function createReelCardImages({
         y="675"
         text-anchor="middle"
         fill="#b8b8b8"
-        font-family="Arial, DejaVu Sans, sans-serif"
-        font-size="27">
+        font-family="ReelFont"
+        font-size="27"
+      >
         MOVIE REEL
       </text>
 
     </svg>
   `;
 
-  const titleLines = wrapReelTitle(movieTitle);
+  const titleLines =
+    wrapReelTitle(movieTitle, 22);
 
-  const titleSvgLines = titleLines
-    .map(
-      (line, index) => `
-        <text
-          x="360"
-          y="${470 + index * 58}"
-          text-anchor="middle"
-          fill="#ffffff"
-          font-family="Arial, DejaVu Sans, sans-serif"
-          font-size="43"
-          font-weight="700">
-          ${escapeSvgText(line)}
-        </text>
-      `
-    )
-    .join("");
+  const titleStartY =
+    titleLines.length > 1
+      ? 445
+      : 480;
+
+  const titleSvgLines =
+    titleLines
+      .map(
+        (line, index) => `
+          <text
+            x="360"
+            y="${titleStartY + index * 58}"
+            text-anchor="middle"
+            fill="#ffffff"
+            font-family="ReelFont"
+            font-size="43"
+            font-weight="700"
+          >
+            ${escapeSvgText(line)}
+          </text>
+        `
+      )
+      .join("");
 
   const outroSvg = `
-    <svg width="720" height="1280"
-         xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width="720"
+      height="1280"
+      viewBox="0 0 720 1280"
+      xmlns="http://www.w3.org/2000/svg"
+    >
 
-      <rect width="720"
-            height="1280"
-            fill="#080808"/>
+      ${embeddedFontStyle}
+
+      <rect
+        width="720"
+        height="1280"
+        fill="#080808"
+      />
 
       ${titleSvgLines}
 
       <text
         x="360"
-        y="555"
+        y="600"
         text-anchor="middle"
         fill="#ffffff"
-        font-family="Arial, DejaVu Sans, sans-serif"
+        font-family="ReelFont"
         font-size="31"
-        font-weight="600">
+        font-weight="600"
+      >
         RATING ${escapeSvgText(String(rating))}/10
       </text>
 
       <text
         x="360"
-        y="690"
+        y="700"
         text-anchor="middle"
         fill="#ffffff"
-        font-family="Arial, DejaVu Sans, sans-serif"
+        font-family="ReelFont"
         font-size="32"
-        font-weight="700">
+        font-weight="700"
+      >
         WATCH TRAILER &amp; DETAILS
       </text>
 
       <text
         x="360"
-        y="760"
+        y="780"
         text-anchor="middle"
         fill="#b8b8b8"
-        font-family="Arial, DejaVu Sans, sans-serif"
-        font-size="25">
+        font-family="ReelFont"
+        font-size="25"
+      >
         FLICKCANVAS
       </text>
 
     </svg>
   `;
 
-  await fs.promises.mkdir(outputDir, { recursive: true });
+  await fs.promises.mkdir(
+    outputDir,
+    { recursive: true }
+  );
 
-  await sharp(Buffer.from(introSvg))
+  await sharp(
+    Buffer.from(introSvg)
+  )
     .png()
     .toFile(introCardPath);
 
-  await sharp(Buffer.from(outroSvg))
+  await sharp(
+    Buffer.from(outroSvg)
+  )
     .png()
     .toFile(outroCardPath);
 
