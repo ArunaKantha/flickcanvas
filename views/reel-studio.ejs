@@ -143,7 +143,47 @@
     <div class="subtitle">
       Select a movie and create an AI video prompt.
     </div>
+    <form
+  method="GET"
+  action="/reel-studio/search"
+  style="
+    display:flex;
+    gap:10px;
+    margin-bottom:30px;
+  "
+>
+  <input
+    type="hidden"
+    name="key"
+    value="<%= key %>"
+  >
 
+  <input
+    type="text"
+    name="q"
+    value="<%= searchQuery || '' %>"
+    placeholder="Search movie..."
+    required
+    style="
+      flex:1;
+      padding:12px 14px;
+      border-radius:8px;
+      border:1px solid #303745;
+      background:#080b10;
+      color:white;
+    "
+  >
+
+  <button
+    type="submit"
+    style="
+      width:auto;
+      padding:12px 22px;
+    "
+  >
+    Search
+  </button>
+</form>
     <div class="movie-grid">
 
       <% movies.forEach(movie => { %>

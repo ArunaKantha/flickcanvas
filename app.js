@@ -1181,6 +1181,10 @@ function escapeFFmpegPath(filePath) {
     .replace(/:/g, "\\:")
     .replace(/'/g, "\\'");
 }
+async function getBlobPut() {
+  const { put } = await import("@vercel/blob");
+  return put;
+}
 // =========================
 // EJS SETUP
 // =========================
@@ -1293,12 +1297,13 @@ app.get(
         .slice(0, 12);
 
       res.render("reel-studio", {
-        movies,
-        selectedMovie: null,
-        videoPrompt: "",
-        imageBase: IMAGE_BASE_URL,
-        key: req.query.key
-      });
+  movies,
+  selectedMovie: null,
+  videoPrompt: "",
+  imageBase: IMAGE_BASE_URL,
+  key: req.query.key,
+  searchQuery: ""
+});
 
     } catch (error) {
       console.error(
@@ -1313,7 +1318,64 @@ app.get(
   }
 );
 
+app.get(
+  "/reel-studio/search",
+  checkReelStudioSecret,
+  async (req, res) => {
+    try {
+      const query = String(req.query.q || "").trim();
 
+      if (!query) {
+        return res.redirect(
+          `/reel-studio?key=${encodeURIComponent(req.query.key || "")}`
+        );
+      }
+
+      const searchResponse = await axios.get(
+        `${TMDB_BASE_URL}/search/movie`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: "en-US",
+            query,
+            page: 1,
+            include_adult: false
+          }
+        }
+      );
+
+      const movies = (
+        searchResponse.data.results || []
+      )
+        .filter(
+          movie =>
+            movie.id &&
+            movie.title &&
+            movie.poster_path
+        )
+        .slice(0, 12);
+
+      res.render("reel-studio", {
+        movies,
+        selectedMovie: null,
+        videoPrompt: "",
+        imageBase: IMAGE_BASE_URL,
+        key: req.query.key,
+        searchQuery: query
+      });
+
+    } catch (error) {
+      console.error(
+        "REEL STUDIO SEARCH ERROR:",
+        error.response?.data || error.message
+      );
+
+      res.status(500).send(
+        "Could not search movies."
+      );
+    }
+  }
+);
 // =========================
 // SELECT MOVIE + GENERATE PROMPT
 // =========================
@@ -1373,12 +1435,13 @@ app.post(
         );
 
       res.render("reel-studio", {
-        movies,
-        selectedMovie,
-        videoPrompt,
-        imageBase: IMAGE_BASE_URL,
-        key: req.body.key
-      });
+  movies,
+  selectedMovie,
+  videoPrompt,
+  imageBase: IMAGE_BASE_URL,
+  key: req.body.key,
+  searchQuery: ""
+});
 
     } catch (error) {
       console.error(
@@ -1716,8 +1779,25 @@ app.post(
         `FINAL REEL CREATED: ${outputFile}`
       );
 
-      const finalVideoUrl =
-        `/reel-output/${outputFile}`;
+      const put = await getBlobPut();
+
+const finalVideoBuffer =
+  fs.readFileSync(outputPath);
+
+const finalBlob = await put(
+  `reels/${outputFile}`,
+  finalVideoBuffer,
+  {
+    access: "public",
+    addRandomSuffix: false,
+    contentType: "video/mp4",
+    oidcToken: process.env.VERCEL_OIDC_TOKEN,
+    storeId: process.env.BLOB_STORE_ID
+  }
+);
+
+const finalVideoUrl =
+  finalBlob.url;
 
       res.render(
         "reel-studio-final",
@@ -1805,8 +1885,15 @@ app.post(
         `${siteUrl}/movie/${movie.id}`;
 
       const finalVideoUrl =
-        `${siteUrl}/reel-output/${finalVideoFile}`;
-
+  req.body.finalVideoUrl;
+if (
+  !finalVideoUrl ||
+  !finalVideoUrl.startsWith("https://")
+) {
+  return res.status(400).send(
+    "Public final Reel URL is missing."
+  );
+}
       const posterUrl =
         movie.poster_path
           ? `${IMAGE_BASE_URL}${movie.poster_path}`
