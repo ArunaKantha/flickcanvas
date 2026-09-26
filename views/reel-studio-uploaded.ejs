@@ -63,13 +63,13 @@
     </h1>
 
     <h2>
-      <%= selectedMovie.title %>
+      <%= movie.title %>
     </h2>
 
     <p>
       ⭐
       <%= Number(
-        selectedMovie.vote_average || 0
+        movie.vote_average || 0
       ).toFixed(1) %>/10
     </p>
 
@@ -93,7 +93,7 @@
   <input
     type="hidden"
     name="movieId"
-    value="<%= selectedMovie.id %>"
+    value="<%= movie.id %>"
   >
 
   <input
