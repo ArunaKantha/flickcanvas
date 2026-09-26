@@ -2062,55 +2062,59 @@ if (videoUrl) {
       // =========================
 
       const args = [
-        "-y",
+  "-y",
 
-        // AI video
-        "-i",
-        inputPath,
+  // AI video
+  "-i",
+  inputPath,
 
-        // Intro background
-        "-f",
-        "lavfi",
-        "-i",
-        "color=c=#080808:s=720x1280:r=30:d=2",
+  // Intro card PNG
+  "-loop",
+  "1",
+  "-t",
+  "2",
+  "-i",
+  introCardPath,
 
-        // Outro background
-        "-f",
-        "lavfi",
-        "-i",
-        "color=c=#080808:s=720x1280:r=30:d=5",
+  // Outro card PNG
+  "-loop",
+  "1",
+  "-t",
+  "5",
+  "-i",
+  outroCardPath,
 
-        "-filter_complex",
-        filter,
+  "-filter_complex",
+  filter,
 
-        "-map",
-        "[v]",
+  "-map",
+  "[v]",
 
-        "-t",
-        "15",
+  "-t",
+  "15",
 
-        "-r",
-        "30",
+  "-r",
+  "30",
 
-        "-c:v",
-        "libx264",
+  "-c:v",
+  "libx264",
 
-        "-preset",
-        "medium",
+  "-preset",
+  "medium",
 
-        "-crf",
-        "21",
+  "-crf",
+  "21",
 
-        "-pix_fmt",
-        "yuv420p",
+  "-pix_fmt",
+  "yuv420p",
 
-        "-an",
+  "-an",
 
-        "-movflags",
-        "+faststart",
+  "-movflags",
+  "+faststart",
 
-        outputPath
-      ];
+  outputPath
+];
 
       console.log(
         `Creating manual final Reel: ${movie.title}`
