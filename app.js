@@ -6,7 +6,7 @@ const multer = require("multer");
 const { spawnSync } = require("child_process");
 const ffmpegPath = require("ffmpeg-static");
 const FormData = require("form-data");
-const { handleUpload } = require("@vercel/blob/client");
+const { issueSignedToken, presignUrl } = require("@vercel/blob");
 require("dotenv").config();
 
 const app = express();
@@ -1377,101 +1377,75 @@ app.get(
     }
   }
 );
-app.post("/reel-studio/blob-upload", async (req, res) => {
-  try {
-    const body = req.body;
-
-    const jsonResponse = await handleUpload({
-      body,
-      request: req,
-      onBeforeGenerateToken: async (pathname, clientPayload) => {
-        return {
-          allowedContentTypes: ["video/mp4", "video/webm", "video/quicktime"],
-          addRandomSuffix: true,
-          tokenPayload: clientPayload || ""
-        };
-      },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        console.log("BLOB UPLOAD COMPLETED:", blob.url);
-      }
-    });
-
-    res.status(200).json(jsonResponse);
-  } catch (error) {
-    console.error("BLOB CLIENT UPLOAD ERROR:", error);
-    res.status(400).json({
-      error: error.message || "Blob upload failed"
-    });
-  }
-});
 app.post(
-  "/reel-studio/uploaded-blob",
+  "/reel-studio/blob-upload",
   checkReelStudioSecret,
   async (req, res) => {
     try {
-      const movieId = String(req.body.movieId || "").trim();
-      const videoUrl = String(req.body.videoUrl || "").trim();
+      const pathname = String(
+        req.body.pathname || ""
+      ).trim();
 
-      if (!movieId || !videoUrl) {
-        return res.status(400).send(
-          "Movie ID or uploaded video URL is missing."
-        );
+      if (!pathname) {
+        return res.status(400).json({
+          error: "Blob pathname is missing."
+        });
       }
 
-      let parsedUrl;
-
-      try {
-        parsedUrl = new URL(videoUrl);
-      } catch {
-        return res.status(400).send(
-          "Invalid uploaded video URL."
-        );
-      }
-
+      // Only allow Reel Studio video uploads
       if (
-        parsedUrl.protocol !== "https:" ||
-        !parsedUrl.hostname.endsWith(
-          ".blob.vercel-storage.com"
-        )
+        !pathname.startsWith("reel-uploads/") ||
+        pathname.includes("..")
       ) {
-        return res.status(400).send(
-          "Invalid Vercel Blob video URL."
-        );
+        return res.status(400).json({
+          error: "Invalid Blob pathname."
+        });
       }
 
-      const movieResponse = await axios.get(
-        `${TMDB_BASE_URL}/movie/${movieId}`,
-        {
-          params: {
-            api_key: process.env.TMDB_API_KEY,
-            language: "en-US"
+      const validUntil =
+        Date.now() + 15 * 60 * 1000;
+
+      const token = await issueSignedToken({
+        pathname,
+        operations: ["put"],
+        validUntil
+      });
+
+      const { presignedUrl } =
+        await presignUrl(
+          token,
+          {
+            pathname,
+            operation: "put",
+            validUntil
           }
-        }
-      );
+        );
 
-      const movie = movieResponse.data;
+      // This store is Public, so after upload
+      // the URL without signing query parameters
+      // is the permanent public Blob URL.
+      const blobUrl =
+        presignedUrl.split("?")[0];
 
-      const rating = Number(
-        movie.vote_average || 0
-      ).toFixed(1);
-
-      res.render("reel-studio-uploaded", {
-        movie,
-        rating,
-        videoUrl,
-        videoFile: "",
-        key: req.query.key
+      return res.json({
+        success: true,
+        presignedUrl,
+        blobUrl
       });
 
     } catch (error) {
       console.error(
-        "REEL BLOB PREVIEW ERROR:",
-        error.response?.data || error.message
+        "BLOB SIGNED URL ERROR:",
+        error.response?.data ||
+        error.message ||
+        error
       );
 
-      res.status(500).send(
-        "Could not open uploaded Reel preview."
-      );
+      return res.status(500).json({
+        error:
+          error.message ||
+          "Could not create Blob upload URL."
+      });
     }
   }
 );

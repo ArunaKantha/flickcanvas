@@ -316,9 +316,7 @@
   ></div>
 </form>
 
-<script type="module">
-  import { upload } from "https://esm.sh/@vercel/blob/client";
-
+<script>
   const form = document.getElementById("aiVideoUploadForm");
   const button = document.getElementById("uploadButton");
   const status = document.getElementById("uploadStatus");
@@ -337,42 +335,90 @@
 
     try {
       button.disabled = true;
-      status.textContent = "Uploading video...";
+      status.textContent = "Preparing upload...";
 
-      const blob = await upload(
-        `reel-uploads/${Date.now()}-${file.name}`,
-        file,
+      const safeName = file.name.replace(
+        /[^a-zA-Z0-9._-]/g,
+        "-"
+      );
+
+      const pathname =
+        `reel-uploads/${Date.now()}-${safeName}`;
+
+      // 1. Get a short-lived signed Blob PUT URL
+      const signResponse = await fetch(
+        `/reel-studio/blob-upload?key=${encodeURIComponent(key)}`,
         {
-          access: "public",
-          handleUploadUrl: "/reel-studio/blob-upload",
-          multipart: true,
-          clientPayload: JSON.stringify({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
             key,
-            movieId
-          }),
-          onUploadProgress(progress) {
-            status.textContent =
-              `Uploading: ${Math.round(progress.percentage)}%`;
-          }
+            pathname
+          })
         }
       );
 
-      status.textContent = "Upload complete. Opening preview...";
+      const signData = await signResponse.json();
 
-      const nextForm = document.createElement("form");
+      if (!signResponse.ok) {
+        throw new Error(
+          signData.error ||
+          "Could not prepare Blob upload."
+        );
+      }
+
+      status.textContent = "Uploading video...";
+
+      // 2. Browser uploads video directly to Vercel Blob
+      const uploadResponse = await fetch(
+        signData.presignedUrl,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type":
+              file.type || "video/mp4"
+          },
+          body: file
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        const errorText =
+          await uploadResponse.text();
+
+        throw new Error(
+          errorText ||
+          "Blob video upload failed."
+        );
+      }
+
+      status.textContent =
+        "Upload complete. Opening preview...";
+
+      // 3. Send the permanent Blob URL to preview page
+      const nextForm =
+        document.createElement("form");
+
       nextForm.method = "POST";
+
       nextForm.action =
         `/reel-studio/uploaded-blob?key=${encodeURIComponent(key)}`;
 
-      const movieInput = document.createElement("input");
+      const movieInput =
+        document.createElement("input");
+
       movieInput.type = "hidden";
       movieInput.name = "movieId";
       movieInput.value = movieId;
 
-      const urlInput = document.createElement("input");
+      const urlInput =
+        document.createElement("input");
+
       urlInput.type = "hidden";
       urlInput.name = "videoUrl";
-      urlInput.value = blob.url;
+      urlInput.value = signData.blobUrl;
 
       nextForm.appendChild(movieInput);
       nextForm.appendChild(urlInput);
@@ -382,8 +428,11 @@
 
     } catch (error) {
       console.error(error);
+
       status.textContent =
-        "Upload failed: " + (error.message || "Unknown error");
+        "Upload failed: " +
+        (error.message || "Unknown error");
+
       button.disabled = false;
     }
   });
