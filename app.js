@@ -6,6 +6,7 @@ const multer = require("multer");
 const { spawnSync } = require("child_process");
 const ffmpegPath = require("ffmpeg-static");
 const FormData = require("form-data");
+const { handleUpload } = require("@vercel/blob/client");
 require("dotenv").config();
 
 const app = express();
@@ -1376,6 +1377,104 @@ app.get(
     }
   }
 );
+app.post("/reel-studio/blob-upload", async (req, res) => {
+  try {
+    const body = req.body;
+
+    const jsonResponse = await handleUpload({
+      body,
+      request: req,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        return {
+          allowedContentTypes: ["video/mp4", "video/webm", "video/quicktime"],
+          addRandomSuffix: true,
+          tokenPayload: clientPayload || ""
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        console.log("BLOB UPLOAD COMPLETED:", blob.url);
+      }
+    });
+
+    res.status(200).json(jsonResponse);
+  } catch (error) {
+    console.error("BLOB CLIENT UPLOAD ERROR:", error);
+    res.status(400).json({
+      error: error.message || "Blob upload failed"
+    });
+  }
+});
+app.post(
+  "/reel-studio/uploaded-blob",
+  checkReelStudioSecret,
+  async (req, res) => {
+    try {
+      const movieId = String(req.body.movieId || "").trim();
+      const videoUrl = String(req.body.videoUrl || "").trim();
+
+      if (!movieId || !videoUrl) {
+        return res.status(400).send(
+          "Movie ID or uploaded video URL is missing."
+        );
+      }
+
+      let parsedUrl;
+
+      try {
+        parsedUrl = new URL(videoUrl);
+      } catch {
+        return res.status(400).send(
+          "Invalid uploaded video URL."
+        );
+      }
+
+      if (
+        parsedUrl.protocol !== "https:" ||
+        !parsedUrl.hostname.endsWith(
+          ".blob.vercel-storage.com"
+        )
+      ) {
+        return res.status(400).send(
+          "Invalid Vercel Blob video URL."
+        );
+      }
+
+      const movieResponse = await axios.get(
+        `${TMDB_BASE_URL}/movie/${movieId}`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: "en-US"
+          }
+        }
+      );
+
+      const movie = movieResponse.data;
+
+      const rating = Number(
+        movie.vote_average || 0
+      ).toFixed(1);
+
+      res.render("reel-studio-uploaded", {
+        movie,
+        rating,
+        videoUrl,
+        videoFile: "",
+        key: req.query.key
+      });
+
+    } catch (error) {
+      console.error(
+        "REEL BLOB PREVIEW ERROR:",
+        error.response?.data || error.message
+      );
+
+      res.status(500).send(
+        "Could not open uploaded Reel preview."
+      );
+    }
+  }
+);
 // =========================
 // SELECT MOVIE + GENERATE PROMPT
 // =========================
@@ -1518,31 +1617,101 @@ app.post(
   checkReelStudioSecret,
   async (req, res) => {
     try {
-      const movieId = req.body.movieId;
-      const videoFile = req.body.videoFile;
+      const movieId = String(
+  req.body.movieId || ""
+).trim();
 
-      if (!movieId || !videoFile) {
-        return res.status(400).send(
-          "Movie ID or uploaded video is missing."
-        );
-      }
+const videoFile = path.basename(
+  req.body.videoFile || ""
+);
 
-      // Prevent arbitrary file paths
-      const safeVideoFile =
-        path.basename(videoFile);
+const videoUrl = String(
+  req.body.videoUrl || ""
+).trim();
 
-      const inputPath = path.join(
-        __dirname,
-        "public",
-        "reel-uploads",
-        safeVideoFile
-      );
+if (!movieId) {
+  return res.status(400).send(
+    "Movie ID is missing."
+  );
+}
 
-      if (!fs.existsSync(inputPath)) {
-        return res.status(404).send(
-          "Uploaded AI video not found."
-        );
-      }
+let inputPath;
+
+// =========================
+// BLOB VIDEO INPUT
+// =========================
+if (videoUrl) {
+  let parsedUrl;
+
+  try {
+    parsedUrl = new URL(videoUrl);
+  } catch {
+    return res.status(400).send(
+      "Invalid Blob video URL."
+    );
+  }
+
+  if (
+    parsedUrl.protocol !== "https:" ||
+    !parsedUrl.hostname.endsWith(
+      ".blob.vercel-storage.com"
+    )
+  ) {
+    return res.status(400).send(
+      "Invalid Vercel Blob video URL."
+    );
+  }
+
+  const tempInputDir = process.env.VERCEL
+    ? "/tmp"
+    : reelUploadDir;
+
+  fs.mkdirSync(
+    tempInputDir,
+    { recursive: true }
+  );
+
+  inputPath = path.join(
+    tempInputDir,
+    `blob-input-${movieId}-${Date.now()}.mp4`
+  );
+
+  const videoResponse = await axios.get(
+    videoUrl,
+    {
+      responseType: "arraybuffer",
+      timeout: 120000
+    }
+  );
+
+  fs.writeFileSync(
+    inputPath,
+    Buffer.from(videoResponse.data)
+  );
+
+  console.log(
+    "BLOB VIDEO DOWNLOADED:",
+    inputPath
+  );
+
+} else if (videoFile) {
+
+  inputPath = path.join(
+    reelUploadDir,
+    videoFile
+  );
+
+  if (!fs.existsSync(inputPath)) {
+    return res.status(404).send(
+      "Uploaded AI video not found."
+    );
+  }
+
+} else {
+  return res.status(400).send(
+    "Uploaded video is missing."
+  );
+}
 
       // Get full movie details
       const movieResponse = await axios.get(

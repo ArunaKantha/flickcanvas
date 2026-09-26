@@ -76,7 +76,7 @@
     <video
       controls
       playsinline
-      src="<%= uploadedVideoUrl %>"
+      src="<%= (typeof videoUrl !== 'undefined' && videoUrl) ? videoUrl : '/reel-uploads/' + videoFile %>"
     ></video>
     <form
   method="POST"
@@ -101,7 +101,11 @@
     name="videoFile"
     value="<%= uploadedVideoFile %>"
   >
-
+<input
+  type="hidden"
+  name="videoUrl"
+  value="<%= typeof videoUrl !== 'undefined' ? videoUrl : '' %>"
+>
   <button
     type="submit"
     style="

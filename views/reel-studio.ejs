@@ -286,45 +286,108 @@
 
 <h3>Upload AI Generated Video</h3>
 
-<form
-  method="POST"
-  action="/reel-studio/upload?key=<%= key %>"
-  enctype="multipart/form-data"
->
-
+<form id="aiVideoUploadForm">
   <input
     type="hidden"
-    name="key"
+    id="reelKey"
     value="<%= key %>"
   >
 
   <input
     type="hidden"
-    name="movieId"
+    id="movieId"
     value="<%= selectedMovie.id %>"
   >
 
   <input
     type="file"
-    name="video"
+    id="videoFile"
     accept="video/mp4,video/webm,video/quicktime"
     required
-    style="
-      width:100%;
-      margin:15px 0;
-      padding:14px;
-      background:#080b10;
-      border:1px solid #303745;
-      border-radius:10px;
-      color:white;
-    "
   >
 
-  <button type="submit">
-    Upload Video
+  <button type="submit" id="uploadButton">
+    Upload AI Generated Video
   </button>
 
+  <div
+    id="uploadStatus"
+    style="margin-top:12px;color:#bbb;"
+  ></div>
 </form>
+
+<script type="module">
+  import { upload } from "https://esm.sh/@vercel/blob/client";
+
+  const form = document.getElementById("aiVideoUploadForm");
+  const button = document.getElementById("uploadButton");
+  const status = document.getElementById("uploadStatus");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const file = document.getElementById("videoFile").files[0];
+    const key = document.getElementById("reelKey").value;
+    const movieId = document.getElementById("movieId").value;
+
+    if (!file) {
+      status.textContent = "Please select a video.";
+      return;
+    }
+
+    try {
+      button.disabled = true;
+      status.textContent = "Uploading video...";
+
+      const blob = await upload(
+        `reel-uploads/${Date.now()}-${file.name}`,
+        file,
+        {
+          access: "public",
+          handleUploadUrl: "/reel-studio/blob-upload",
+          multipart: true,
+          clientPayload: JSON.stringify({
+            key,
+            movieId
+          }),
+          onUploadProgress(progress) {
+            status.textContent =
+              `Uploading: ${Math.round(progress.percentage)}%`;
+          }
+        }
+      );
+
+      status.textContent = "Upload complete. Opening preview...";
+
+      const nextForm = document.createElement("form");
+      nextForm.method = "POST";
+      nextForm.action =
+        `/reel-studio/uploaded-blob?key=${encodeURIComponent(key)}`;
+
+      const movieInput = document.createElement("input");
+      movieInput.type = "hidden";
+      movieInput.name = "movieId";
+      movieInput.value = movieId;
+
+      const urlInput = document.createElement("input");
+      urlInput.type = "hidden";
+      urlInput.name = "videoUrl";
+      urlInput.value = blob.url;
+
+      nextForm.appendChild(movieInput);
+      nextForm.appendChild(urlInput);
+
+      document.body.appendChild(nextForm);
+      nextForm.submit();
+
+    } catch (error) {
+      console.error(error);
+      status.textContent =
+        "Upload failed: " + (error.message || "Unknown error");
+      button.disabled = false;
+    }
+  });
+</script>
       </div>
 
     <% } %>
