@@ -7,6 +7,7 @@ const { spawnSync } = require("child_process");
 const ffmpegPath = require("ffmpeg-static");
 const FormData = require("form-data");
 const { issueSignedToken, presignUrl } = require("@vercel/blob");
+const sharp = require("sharp");
 require("dotenv").config();
 
 const app = express();
@@ -1196,6 +1197,173 @@ function escapeFFmpegPath(filePath) {
     .replace(/:/g, "\\:")
     .replace(/'/g, "\\'");
 }
+function escapeSvgText(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function wrapReelTitle(title, maxLength = 22) {
+  const words = String(title || "").split(/\s+/);
+
+  const lines = [];
+  let current = "";
+
+  for (const word of words) {
+    const next = current
+      ? `${current} ${word}`
+      : word;
+
+    if (
+      next.length > maxLength &&
+      current
+    ) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+
+  if (current) {
+    lines.push(current);
+  }
+
+  return lines.slice(0, 2);
+}
+
+async function createReelCardImages({
+  movieTitle,
+  rating,
+  outputDir
+}) {
+  const introPath = path.join(
+    outputDir,
+    `reel-intro-${Date.now()}.png`
+  );
+
+  const outroPath = path.join(
+    outputDir,
+    `reel-outro-${Date.now()}.png`
+  );
+
+  const introSvg = `
+    <svg width="720" height="1280"
+         xmlns="http://www.w3.org/2000/svg">
+
+      <rect width="720"
+            height="1280"
+            fill="#000000"/>
+
+      <text
+        x="360"
+        y="610"
+        text-anchor="middle"
+        fill="#ffffff"
+        font-family="Arial, DejaVu Sans, sans-serif"
+        font-size="58"
+        font-weight="700">
+        FLICKCANVAS
+      </text>
+
+      <text
+        x="360"
+        y="675"
+        text-anchor="middle"
+        fill="#b8b8b8"
+        font-family="Arial, DejaVu Sans, sans-serif"
+        font-size="27">
+        MOVIE REEL
+      </text>
+
+    </svg>
+  `;
+
+  const titleLines =
+    wrapReelTitle(movieTitle);
+
+  const titleSvgLines =
+    titleLines
+      .map(
+        (line, index) => `
+          <text
+            x="360"
+            y="${470 + index * 60}"
+            text-anchor="middle"
+            fill="#ffffff"
+            font-family="Arial, DejaVu Sans, sans-serif"
+            font-size="43"
+            font-weight="700">
+            ${escapeSvgText(line)}
+          </text>
+        `
+      )
+      .join("");
+
+  const outroSvg = `
+    <svg width="720" height="1280"
+         xmlns="http://www.w3.org/2000/svg">
+
+      <rect width="720"
+            height="1280"
+            fill="#000000"/>
+
+      ${titleSvgLines}
+
+      <text
+        x="360"
+        y="610"
+        text-anchor="middle"
+        fill="#ffffff"
+        font-family="Arial, DejaVu Sans, sans-serif"
+        font-size="31">
+        RATING ${escapeSvgText(rating)}/10
+      </text>
+
+      <text
+        x="360"
+        y="705"
+        text-anchor="middle"
+        fill="#ffffff"
+        font-family="Arial, DejaVu Sans, sans-serif"
+        font-size="32"
+        font-weight="700">
+        WATCH TRAILER &amp; DETAILS
+      </text>
+
+      <text
+        x="360"
+        y="780"
+        text-anchor="middle"
+        fill="#b8b8b8"
+        font-family="Arial, DejaVu Sans, sans-serif"
+        font-size="25">
+        FLICKCANVAS
+      </text>
+
+    </svg>
+  `;
+
+  await sharp(
+    Buffer.from(introSvg)
+  )
+    .png()
+    .toFile(introPath);
+
+  await sharp(
+    Buffer.from(outroSvg)
+  )
+    .png()
+    .toFile(outroPath);
+
+  return {
+    introPath,
+    outroPath
+  };
+}
 async function getBlobPut() {
   const { put } = await import("@vercel/blob");
   return put;
@@ -1851,78 +2019,43 @@ if (videoUrl) {
 
       const filter = [
 
-        // Intro: 2 seconds
-        `[1:v]` +
-        `drawtext=` +
-        `fontfile='${font}':` +
-        `text='FLICKCANVAS':` +
-        `fontcolor=white:` +
-        `fontsize=58:` +
-        `x=(w-text_w)/2:` +
-        `y=(h-text_h)/2-25,` +
+  // Intro card PNG - 2 sec
+  `[1:v]` +
+  `scale=720:1280,` +
+  `setsar=1,` +
+  `fps=30,` +
+  `trim=duration=2,` +
+  `setpts=PTS-STARTPTS` +
+  `[intro]`,
 
-        `drawtext=` +
-        `fontfile='${font}':` +
-        `text='MOVIE REEL':` +
-        `fontcolor=white@0.75:` +
-        `fontsize=27:` +
-        `x=(w-text_w)/2:` +
-        `y=(h-text_h)/2+55` +
-        `[intro]`,
+  // AI clip - exactly 8 sec
+  `[0:v]` +
+  `scale=720:1280:` +
+  `force_original_aspect_ratio=increase,` +
+  `crop=720:1280,` +
+  `setsar=1,` +
+  `fps=30,` +
+  `tpad=stop_mode=clone:stop_duration=8,` +
+  `trim=duration=8,` +
+  `setpts=PTS-STARTPTS` +
+  `[clip]`,
 
-        // AI clip - exactly 8 sec
-        `[0:v]` +
-        `scale=720:1280:` +
-        `force_original_aspect_ratio=increase,` +
-        `crop=720:1280,` +
-        `fps=30,` +
-        `tpad=stop_mode=clone:stop_duration=8,` +
-        `trim=duration=8,` +
-        `setpts=PTS-STARTPTS` +
-        `[clip]`,
+  // Outro card PNG - 5 sec
+  `[2:v]` +
+  `scale=720:1280,` +
+  `setsar=1,` +
+  `fps=30,` +
+  `trim=duration=5,` +
+  `setpts=PTS-STARTPTS` +
+  `[outro]`,
 
-        // Outro: 5 sec
-        `[2:v]` +
-        `drawtext=` +
-        `fontfile='${font}':` +
-        `text='${safeTitle}':` +
-        `fontcolor=white:` +
-        `fontsize=43:` +
-        `x=(w-text_w)/2:` +
-        `y=470,` +
+  // 2 + 8 + 5 = 15 sec
+  `[intro][clip][outro]` +
+  `concat=n=3:v=1:a=0,` +
+  `format=yuv420p` +
+  `[v]`
 
-        `drawtext=` +
-        `fontfile='${font}':` +
-        `text='RATING ${rating}/10':` +
-        `fontcolor=white:` +
-        `fontsize=31:` +
-        `x=(w-text_w)/2:` +
-        `y=555,` +
-
-        `drawtext=` +
-        `fontfile='${font}':` +
-        `text='WATCH TRAILER & DETAILS':` +
-        `fontcolor=white:` +
-        `fontsize=32:` +
-        `x=(w-text_w)/2:` +
-        `y=690,` +
-
-        `drawtext=` +
-        `fontfile='${font}':` +
-        `text='FLICKCANVAS':` +
-        `fontcolor=white@0.70:` +
-        `fontsize=25:` +
-        `x=(w-text_w)/2:` +
-        `y=760` +
-        `[outro]`,
-
-        // 2 + 8 + 5 = 15 seconds
-        `[intro][clip][outro]` +
-        `concat=n=3:v=1:a=0,` +
-        `format=yuv420p` +
-        `[v]`
-
-      ].join(";");
+].join(";");
 
       // =========================
       // RUN FFMPEG
