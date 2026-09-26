@@ -4357,11 +4357,11 @@ async function publishPinterestVideoPin({
 
   for (
     let attempt = 1;
-    attempt <= 20;
+    attempt <= 30;
     attempt++
   ) {
     await new Promise(resolve =>
-      setTimeout(resolve, 3000)
+      setTimeout(resolve, 5000)
     );
 
     const statusResponse =
