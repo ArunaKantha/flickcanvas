@@ -2189,18 +2189,70 @@ app.post(
         );
       }
 
-      const finalVideoPath = path.join(
-        __dirname,
-        "public",
-        "reel-output",
-        finalVideoFile
-      );
+      const finalVideoUrl = String(
+  req.body.finalVideoUrl || ""
+).trim();
 
-      if (!fs.existsSync(finalVideoPath)) {
-        return res.status(404).send(
-          "Final Reel video not found."
-        );
-      }
+if (!finalVideoUrl) {
+  return res.status(400).send(
+    "Final Reel public URL is missing."
+  );
+}
+
+let parsedFinalUrl;
+
+try {
+  parsedFinalUrl = new URL(finalVideoUrl);
+} catch {
+  return res.status(400).send(
+    "Invalid Final Reel URL."
+  );
+}
+
+if (
+  parsedFinalUrl.protocol !== "https:" ||
+  !parsedFinalUrl.hostname.endsWith(
+    ".blob.vercel-storage.com"
+  )
+) {
+  return res.status(400).send(
+    "Invalid Vercel Blob Final Reel URL."
+  );
+}
+
+// Pinterest needs a local video file,
+// so download the Blob Reel to /tmp.
+const publishTempDir = process.env.VERCEL
+  ? "/tmp"
+  : path.join(__dirname, "temp-reel-publish");
+
+fs.mkdirSync(
+  publishTempDir,
+  { recursive: true }
+);
+
+const finalVideoPath = path.join(
+  publishTempDir,
+  `publish-${Date.now()}.mp4`
+);
+
+const finalVideoResponse = await axios.get(
+  finalVideoUrl,
+  {
+    responseType: "arraybuffer",
+    timeout: 120000
+  }
+);
+
+fs.writeFileSync(
+  finalVideoPath,
+  Buffer.from(finalVideoResponse.data)
+);
+
+console.log(
+  "FINAL REEL DOWNLOADED FOR PUBLISH:",
+  finalVideoPath
+);
 
       const movieResponse = await axios.get(
         `${TMDB_BASE_URL}/movie/${movieId}`,
@@ -2226,8 +2278,7 @@ app.post(
       const movieLink =
         `${siteUrl}/movie/${movie.id}`;
 
-      const finalVideoUrl =
-  req.body.finalVideoUrl;
+      
 if (
   !finalVideoUrl ||
   !finalVideoUrl.startsWith("https://")
