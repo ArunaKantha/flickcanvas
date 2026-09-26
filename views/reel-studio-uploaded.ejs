@@ -99,7 +99,7 @@
   <input
     type="hidden"
     name="videoFile"
-    value="<%= uploadedVideoFile %>"
+    value="<%= typeof videoFile !== 'undefined' ? videoFile : '' %>"
   >
 <input
   type="hidden"
