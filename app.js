@@ -1582,6 +1582,77 @@ app.post(
     }
   }
 );
+app.post(
+  "/reel-studio/uploaded-blob",
+  checkReelStudioSecret,
+  async (req, res) => {
+    try {
+      const movieId = String(req.body.movieId || "").trim();
+      const videoUrl = String(req.body.videoUrl || "").trim();
+
+      if (!movieId || !videoUrl) {
+        return res.status(400).send(
+          "Movie ID or uploaded video URL is missing."
+        );
+      }
+
+      let parsedUrl;
+
+      try {
+        parsedUrl = new URL(videoUrl);
+      } catch {
+        return res.status(400).send(
+          "Invalid uploaded video URL."
+        );
+      }
+
+      if (
+        parsedUrl.protocol !== "https:" ||
+        !parsedUrl.hostname.endsWith(
+          ".blob.vercel-storage.com"
+        )
+      ) {
+        return res.status(400).send(
+          "Invalid Vercel Blob video URL."
+        );
+      }
+
+      const movieResponse = await axios.get(
+        `${TMDB_BASE_URL}/movie/${movieId}`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: "en-US"
+          }
+        }
+      );
+
+      const movie = movieResponse.data;
+
+      const rating = Number(
+        movie.vote_average || 0
+      ).toFixed(1);
+
+      return res.render("reel-studio-uploaded", {
+        movie,
+        rating,
+        videoUrl,
+        videoFile: "",
+        key: req.query.key
+      });
+
+    } catch (error) {
+      console.error(
+        "REEL BLOB PREVIEW ERROR:",
+        error.response?.data || error.message
+      );
+
+      return res.status(500).send(
+        "Could not open uploaded Reel preview."
+      );
+    }
+  }
+);
 // =========================
 // CREATE FINAL MANUAL REEL
 // =========================
