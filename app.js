@@ -8,6 +8,7 @@ const ffmpegPath = require("ffmpeg-static");
 const FormData = require("form-data");
 const { issueSignedToken, presignUrl } = require("@vercel/blob");
 const sharp = require("sharp");
+const TextToSVG = require("text-to-svg");
 require("dotenv").config();
 
 const app = express();
@@ -1240,15 +1241,26 @@ async function createReelCardImages({
   rating,
   outputDir
 }) {
+  await fs.promises.mkdir(
+    outputDir,
+    { recursive: true }
+  );
+
+  const stamp = Date.now();
+
   const introCardPath = path.join(
     outputDir,
-    `reel-intro-${Date.now()}.png`
+    `reel-intro-${stamp}.png`
   );
 
   const outroCardPath = path.join(
     outputDir,
-    `reel-outro-${Date.now()}.png`
+    `reel-outro-${stamp}.png`
   );
+
+  // =========================
+  // LOAD BUNDLED FONT
+  // =========================
 
   const fontFilePath = path.join(
     __dirname,
@@ -1260,27 +1272,57 @@ async function createReelCardImages({
 
   if (!fs.existsSync(fontFilePath)) {
     throw new Error(
-      `Bundled Reel font not found: ${fontFilePath}`
+      `Reel font not found: ${fontFilePath}`
     );
   }
 
-  const fontBase64 =
-    fs.readFileSync(fontFilePath).toString("base64");
+  const textToSVG =
+    TextToSVG.loadSync(fontFilePath);
 
-  const embeddedFontStyle = `
-    <defs>
-      <style type="text/css">
-        @font-face {
-          font-family: 'ReelFont';
-          src: url("data:font/ttf;base64,${fontBase64}");
-        }
+  // =========================
+  // TEXT -> SVG PATH HELPER
+  // =========================
 
-        text {
-          font-family: 'ReelFont';
+  function makeTextPath(
+    text,
+    x,
+    y,
+    fontSize,
+    fill = "#ffffff"
+  ) {
+    return textToSVG.getPath(
+      String(text || ""),
+      {
+        x,
+        y,
+        fontSize,
+        anchor: "center middle",
+        attributes: {
+          fill
         }
-      </style>
-    </defs>
-  `;
+      }
+    );
+  }
+
+  // =========================
+  // INTRO
+  // =========================
+
+  const introTitlePath = makeTextPath(
+    "FLICKCANVAS",
+    360,
+    610,
+    58,
+    "#ffffff"
+  );
+
+  const introSubtitlePath = makeTextPath(
+    "MOVIE REEL",
+    360,
+    675,
+    27,
+    "#b8b8b8"
+  );
 
   const introSvg = `
     <svg
@@ -1289,40 +1331,21 @@ async function createReelCardImages({
       viewBox="0 0 720 1280"
       xmlns="http://www.w3.org/2000/svg"
     >
-
-      ${embeddedFontStyle}
-
       <rect
         width="720"
         height="1280"
         fill="#080808"
       />
 
-      <text
-        x="360"
-        y="610"
-        text-anchor="middle"
-        fill="#ffffff"
-        font-family="ReelFont"
-        font-size="58"
-        font-weight="700"
-      >
-        FLICKCANVAS
-      </text>
+      ${introTitlePath}
 
-      <text
-        x="360"
-        y="675"
-        text-anchor="middle"
-        fill="#b8b8b8"
-        font-family="ReelFont"
-        font-size="27"
-      >
-        MOVIE REEL
-      </text>
-
+      ${introSubtitlePath}
     </svg>
   `;
+
+  // =========================
+  // OUTRO TITLE
+  // =========================
 
   const titleLines =
     wrapReelTitle(movieTitle, 22);
@@ -1332,24 +1355,41 @@ async function createReelCardImages({
       ? 445
       : 480;
 
-  const titleSvgLines =
-    titleLines
-      .map(
-        (line, index) => `
-          <text
-            x="360"
-            y="${titleStartY + index * 58}"
-            text-anchor="middle"
-            fill="#ffffff"
-            font-family="ReelFont"
-            font-size="43"
-            font-weight="700"
-          >
-            ${escapeSvgText(line)}
-          </text>
-        `
+  const titlePaths = titleLines
+    .map((line, index) =>
+      makeTextPath(
+        line,
+        360,
+        titleStartY + index * 58,
+        43,
+        "#ffffff"
       )
-      .join("");
+    )
+    .join("");
+
+  const ratingPath = makeTextPath(
+    `RATING ${rating}/10`,
+    360,
+    600,
+    31,
+    "#ffffff"
+  );
+
+  const ctaPath = makeTextPath(
+    "WATCH TRAILER & DETAILS",
+    360,
+    700,
+    32,
+    "#ffffff"
+  );
+
+  const brandPath = makeTextPath(
+    "FLICKCANVAS",
+    360,
+    780,
+    25,
+    "#b8b8b8"
+  );
 
   const outroSvg = `
     <svg
@@ -1358,59 +1398,25 @@ async function createReelCardImages({
       viewBox="0 0 720 1280"
       xmlns="http://www.w3.org/2000/svg"
     >
-
-      ${embeddedFontStyle}
-
       <rect
         width="720"
         height="1280"
         fill="#080808"
       />
 
-      ${titleSvgLines}
+      ${titlePaths}
 
-      <text
-        x="360"
-        y="600"
-        text-anchor="middle"
-        fill="#ffffff"
-        font-family="ReelFont"
-        font-size="31"
-        font-weight="600"
-      >
-        RATING ${escapeSvgText(String(rating))}/10
-      </text>
+      ${ratingPath}
 
-      <text
-        x="360"
-        y="700"
-        text-anchor="middle"
-        fill="#ffffff"
-        font-family="ReelFont"
-        font-size="32"
-        font-weight="700"
-      >
-        WATCH TRAILER &amp; DETAILS
-      </text>
+      ${ctaPath}
 
-      <text
-        x="360"
-        y="780"
-        text-anchor="middle"
-        fill="#b8b8b8"
-        font-family="ReelFont"
-        font-size="25"
-      >
-        FLICKCANVAS
-      </text>
-
+      ${brandPath}
     </svg>
   `;
 
-  await fs.promises.mkdir(
-    outputDir,
-    { recursive: true }
-  );
+  // =========================
+  // SVG -> PNG
+  // =========================
 
   await sharp(
     Buffer.from(introSvg)
@@ -1423,6 +1429,16 @@ async function createReelCardImages({
   )
     .png()
     .toFile(outroCardPath);
+
+  console.log(
+    "REEL INTRO CARD CREATED:",
+    introCardPath
+  );
+
+  console.log(
+    "REEL OUTRO CARD CREATED:",
+    outroCardPath
+  );
 
   return {
     introCardPath,
