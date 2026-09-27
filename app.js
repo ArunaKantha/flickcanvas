@@ -2882,910 +2882,504 @@ app.get("/movie/:id", async (req, res) => {
 
 
 // =========================
-// FACEBOOK AUTO POST
+// DAILY MOVIE AUTO POST
+// FACEBOOK + INSTAGRAM + PINTEREST
+// 30-DAY DUPLICATE CHECK
 // =========================
 
 app.get("/api/facebook/auto-post", async (req, res) => {
-  const authorization = req.get("authorization") || "";
 
-const bearerSecret = authorization.startsWith("Bearer ")
-  ? authorization.slice(7)
-  : "";
+  const authorization =
+    req.get("authorization") || "";
 
-const manualSecret = req.query.secret || "";
+  const bearerSecret =
+    authorization.startsWith("Bearer ")
+      ? authorization.slice(7)
+      : "";
 
-const cronSecret =
-  process.env.CRON_SECRET ||
-  process.env.FACEBOOK_CRON_SECRET;
+  const manualSecret =
+    req.query.secret || "";
 
-// Vercel Cron requests
-const isVercelCron =
-  req.headers["x-vercel-cron"] === "1";
+  const cronSecret =
+    process.env.CRON_SECRET ||
+    process.env.FACEBOOK_CRON_SECRET;
 
-if (
-  !isVercelCron &&
-  (!cronSecret ||
-    (bearerSecret !== cronSecret &&
-     manualSecret !== cronSecret))
-) {
-  return res.status(401).json({
-    error: "Unauthorized"
-  });
-}
+  const isVercelCron =
+    req.headers["x-vercel-cron"] === "1";
+
+  if (
+    !isVercelCron &&
+    (
+      !cronSecret ||
+      (
+        bearerSecret !== cronSecret &&
+        manualSecret !== cronSecret
+      )
+    )
+  ) {
+    return res.status(401).json({
+      error: "Unauthorized"
+    });
+  }
 
   try {
+
     // =========================
-// MOVIE SELECTION
-// =========================
+    // GET TRENDING MOVIES
+    // =========================
 
-// Vercel / GitHub Actions times:
-// 14:00 UTC = 7:30 PM Sri Lanka → Trending #1
-// 22:00 UTC = 3:30 AM Sri Lanka → Movie Pick
+    const trendingResponse =
+      await axios.get(
+        `${TMDB_BASE_URL}/trending/movie/day`,
+        {
+          params: {
+            api_key:
+              process.env.TMDB_API_KEY,
 
-const currentUTCHour = new Date().getUTCHours();
+            language:
+              "en-US"
+          }
+        }
+      );
 
-const isMoviePick = currentUTCHour === 22;
+    const trendingMovies =
+      (
+        trendingResponse.data.results || []
+      ).filter(movie =>
+        movie.id &&
+        movie.title &&
+        movie.poster_path &&
+        movie.overview
+      );
 
-let movie;
+    if (!trendingMovies.length) {
+      throw new Error(
+        "No eligible trending movies found"
+      );
+    }
 
-if (!isMoviePick) {
+    // =========================
+    // 30-DAY DATE
+    // =========================
 
-  // =========================
-  // TRENDING MOVIE
-  // Skip movies posted within last 7 days
-  // =========================
+    const thirtyDaysAgo =
+      new Date(
+        Date.now() -
+        30 * 24 * 60 * 60 * 1000
+      );
 
-  const trendingResponse = await axios.get(
-    `${TMDB_BASE_URL}/trending/movie/day`,
-    {
-      params: {
-        api_key: process.env.TMDB_API_KEY,
-        language: "en-US"
+    // =========================
+    // FACEBOOK HISTORY
+    // =========================
+
+    const pageId =
+      process.env.FACEBOOK_PAGE_ID;
+
+    const pageAccessToken =
+      process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+
+    const facebookGraphVersion =
+      process.env.FACEBOOK_GRAPH_VERSION ||
+      "v26.0";
+
+    let facebookPosts = [];
+
+    if (
+      pageId &&
+      pageAccessToken
+    ) {
+      try {
+
+        const facebookHistoryResponse =
+          await axios.get(
+            `https://graph.facebook.com/${facebookGraphVersion}/${pageId}/posts`,
+            {
+              params: {
+                fields:
+                  "id,message,created_time",
+
+                limit: 100,
+
+                access_token:
+                  pageAccessToken
+              }
+            }
+          );
+
+        facebookPosts =
+          facebookHistoryResponse.data.data ||
+          [];
+
+      } catch (error) {
+
+        console.error(
+          "FACEBOOK HISTORY ERROR:",
+          error.response?.data ||
+          error.message
+        );
       }
     }
-  );
 
-  const trendingMovies =
-    (trendingResponse.data.results || [])
-      .filter(item =>
-        item.id &&
-        item.title &&
-        item.poster_path
-      );
+    // =========================
+    // INSTAGRAM HISTORY
+    // =========================
 
-  if (!trendingMovies.length) {
-    throw new Error("No trending movies found");
-  }
+    const instagramAccountId =
+      process.env
+        .INSTAGRAM_BUSINESS_ACCOUNT_ID;
 
-  const sevenDaysAgo = new Date(
-    Date.now() - 7 * 24 * 60 * 60 * 1000
-  );
+    const instagramAccessToken =
+      process.env
+        .INSTAGRAM_ACCESS_TOKEN;
 
-  // =========================
-  // FACEBOOK HISTORY
-  // =========================
+    const instagramGraphVersion =
+      process.env
+        .INSTAGRAM_GRAPH_VERSION ||
+      "v26.0";
 
-  const pageId =
-    process.env.FACEBOOK_PAGE_ID;
+    let instagramMedia = [];
 
-  const pageAccessToken =
-    process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+    if (
+      instagramAccountId &&
+      instagramAccessToken
+    ) {
+      try {
 
-  const graphVersion =
-    process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
+        const instagramHistoryResponse =
+          await axios.get(
+            `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
+            {
+              params: {
+                fields:
+                  "id,caption,timestamp,media_type",
 
-  let facebookPosts = [];
+                limit: 100,
 
-  if (pageId && pageAccessToken) {
-    try {
-      const postsResponse = await axios.get(
-        `https://graph.facebook.com/${graphVersion}/${pageId}/posts`,
-        {
-          params: {
-            fields: "id,message,created_time",
-            limit: 100,
-            access_token: pageAccessToken
-          }
-        }
-      );
+                access_token:
+                  instagramAccessToken
+              }
+            }
+          );
 
-      facebookPosts =
-        postsResponse.data.data || [];
+        instagramMedia =
+          instagramHistoryResponse.data.data ||
+          [];
 
-    } catch (error) {
-      console.error(
-        "Could not read Facebook post history:",
-        error.response?.data || error.message
-      );
-    }
-  }
+      } catch (error) {
 
-  // =========================
-  // INSTAGRAM HISTORY
-  // =========================
-
-  const instagramAccountId =
-    process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
-
-  const instagramAccessToken =
-    process.env.INSTAGRAM_ACCESS_TOKEN;
-
-  const instagramGraphVersion =
-    process.env.INSTAGRAM_GRAPH_VERSION || "v26.0";
-
-  let instagramMedia = [];
-
-  if (
-    instagramAccountId &&
-    instagramAccessToken
-  ) {
-    try {
-      const mediaResponse = await axios.get(
-        `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
-        {
-          params: {
-            fields: "id,caption,timestamp,media_type",
-            limit: 100,
-            access_token: instagramAccessToken
-          }
-        }
-      );
-
-      instagramMedia =
-        mediaResponse.data.data || [];
-
-    } catch (error) {
-      console.error(
-        "Could not read Instagram post history:",
-        error.response?.data || error.message
-      );
-    }
-  }
-
-  // =========================
-  // CHECK LAST 7 DAYS
-  // =========================
-
-  function wasPostedWithin7Days(title) {
-
-    const facebookDuplicate =
-      facebookPosts.some(post => {
-
-        if (
-          !post.message ||
-          !post.created_time
-        ) {
-          return false;
-        }
-
-        const postDate =
-          new Date(post.created_time);
-
-        return (
-          postDate >= sevenDaysAgo &&
-          post.message.includes("FLICKCANVAS") &&
-          post.message.includes(title)
+        console.error(
+          "INSTAGRAM HISTORY ERROR:",
+          error.response?.data ||
+          error.message
         );
-      });
-
-    const instagramDuplicate =
-      instagramMedia.some(item => {
-
-        if (
-          !item.caption ||
-          !item.timestamp
-        ) {
-          return false;
-        }
-
-        const postDate =
-          new Date(item.timestamp);
-
-        return (
-          postDate >= sevenDaysAgo &&
-          item.caption.includes("FLICKCANVAS") &&
-          item.caption.includes(title)
-        );
-      });
-
-    return (
-      facebookDuplicate ||
-      instagramDuplicate
-    );
-  }
-
-  // =========================
-  // SELECT FIRST AVAILABLE
-  // TRENDING MOVIE
-  // =========================
-
-  movie = null;
-
-  for (const candidate of trendingMovies) {
-
-    if (wasPostedWithin7Days(candidate.title)) {
-      console.log(
-        `Trending duplicate skipped during selection: ${candidate.title}`
-      );
-      continue;
+      }
     }
 
-    movie = candidate;
+    // =========================
+    // NORMALIZE TEXT
+    // =========================
+
+    function normalizeText(value) {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    // =========================
+    // 30-DAY DUPLICATE CHECK
+    // =========================
+
+    function wasPostedWithin30Days(
+      movieTitle
+    ) {
+
+      const normalizedTitle =
+        normalizeText(movieTitle);
+
+      const facebookDuplicate =
+        facebookPosts.some(post => {
+
+          if (
+            !post.message ||
+            !post.created_time
+          ) {
+            return false;
+          }
+
+          const postDate =
+            new Date(
+              post.created_time
+            );
+
+          if (
+            postDate < thirtyDaysAgo
+          ) {
+            return false;
+          }
+
+          return normalizeText(
+            post.message
+          ).includes(
+            normalizedTitle
+          );
+        });
+
+      const instagramDuplicate =
+        instagramMedia.some(item => {
+
+          if (
+            !item.caption ||
+            !item.timestamp
+          ) {
+            return false;
+          }
+
+          const postDate =
+            new Date(
+              item.timestamp
+            );
+
+          if (
+            postDate < thirtyDaysAgo
+          ) {
+            return false;
+          }
+
+          return normalizeText(
+            item.caption
+          ).includes(
+            normalizedTitle
+          );
+        });
+
+      return (
+        facebookDuplicate ||
+        instagramDuplicate
+      );
+    }
+
+    // =========================
+    // SELECT FIRST TRENDING
+    // MOVIE NOT USED IN 30 DAYS
+    // =========================
+
+    let movie = null;
+
+    for (
+      const candidate
+      of trendingMovies
+    ) {
+
+      if (
+        wasPostedWithin30Days(
+          candidate.title
+        )
+      ) {
+
+        console.log(
+          `30-day duplicate skipped: ${candidate.title}`
+        );
+
+        continue;
+      }
+
+      movie = candidate;
+
+      break;
+    }
+
+    if (!movie) {
+      return res.json({
+        success: true,
+        skipped: true,
+        reason:
+          "All current trending movies were used within the last 30 days"
+      });
+    }
 
     console.log(
-      `Trending movie selected: ${candidate.title}`
+      `Daily movie selected: ${movie.title}`
     );
 
-    break;
-  }
-
-  if (!movie) {
-    throw new Error(
-      "All trending movies were posted within the last 7 days"
-    );
-  }
-
-} else {
-
-  // =========================
-  // MOVIE PICK
-  // Non-trending + 7-day cooldown
-  // =========================
-
-  // =========================
-  // GET TRENDING MOVIES
-  // =========================
-
-  const trendingResponse = await axios.get(
-    `${TMDB_BASE_URL}/trending/movie/day`,
-    {
-      params: {
-        api_key: process.env.TMDB_API_KEY,
-        language: "en-US"
-      }
-    }
-  );
-
-  const trendingMovies =
-    (trendingResponse.data.results || [])
-      .filter(item => item.id);
-
-  const trendingIds =
-    new Set(
-      trendingMovies.map(item => item.id)
-    );
-
-  // =========================
-  // GET FACEBOOK POSTS
-  // =========================
-
-  const pageId =
-    process.env.FACEBOOK_PAGE_ID;
-
-  const pageAccessToken =
-    process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
-
-  const graphVersion =
-    process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
-
-  const now = new Date();
-
-  const sevenDaysAgo = new Date(
-    now.getTime() -
-    7 * 24 * 60 * 60 * 1000
-  );
-
-  let facebookPosts = [];
-
-  if (pageId && pageAccessToken) {
-
-    try {
-
-      const postsResponse = await axios.get(
-        `https://graph.facebook.com/${graphVersion}/${pageId}/posts`,
-        {
-          params: {
-            fields: "id,message,created_time",
-            limit: 100,
-            access_token: pageAccessToken
-          }
-        }
-      );
-
-      facebookPosts =
-        postsResponse.data.data || [];
-
-    } catch (facebookHistoryError) {
-
-      console.error(
-        "Could not read Facebook post history:",
-        facebookHistoryError.response?.data ||
-        facebookHistoryError.message
-      );
-    }
-  }
-
-  // =========================
-  // GET INSTAGRAM POSTS
-  // =========================
-
-  const instagramAccountId =
-    process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
-
-  const instagramAccessToken =
-    process.env.INSTAGRAM_ACCESS_TOKEN;
-
-  const instagramGraphVersion =
-    process.env.INSTAGRAM_GRAPH_VERSION || "v26.0";
-
-  let instagramMedia = [];
-
-  if (
-    instagramAccountId &&
-    instagramAccessToken
-  ) {
-
-    try {
-
-      const mediaResponse = await axios.get(
-        `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
-        {
-          params: {
-            fields: "id,caption,timestamp,media_type",
-            limit: 100,
-            access_token: instagramAccessToken
-          }
-        }
-      );
-
-      instagramMedia =
-        mediaResponse.data.data || [];
-
-    } catch (instagramHistoryError) {
-
-      console.error(
-        "Could not read Instagram post history:",
-        instagramHistoryError.response?.data ||
-        instagramHistoryError.message
-      );
-    }
-  }
-
-  // =========================
-  // FIND MOVIES POSTED
-  // WITHIN LAST 7 DAYS
-  // =========================
-
-  const recentlyPostedTitles =
-    new Set();
-
-  // Facebook
-  for (const post of facebookPosts) {
-
-    if (
-      !post.message ||
-      !post.created_time
-    ) {
-      continue;
-    }
-
-    const postDate =
-      new Date(post.created_time);
-
-    if (
-      postDate >= sevenDaysAgo &&
-      post.message.includes("FLICKCANVAS")
-    ) {
-      recentlyPostedTitles.add(
-        post.message
-      );
-    }
-  }
-
-  // Instagram
-  for (const item of instagramMedia) {
-
-    if (
-      !item.caption ||
-      !item.timestamp
-    ) {
-      continue;
-    }
-
-    const postDate =
-      new Date(item.timestamp);
-
-    if (
-      postDate >= sevenDaysAgo &&
-      item.caption.includes("FLICKCANVAS")
-    ) {
-      recentlyPostedTitles.add(
-        item.caption
-      );
-    }
-  }
-
-  // =========================
-  // GET POPULAR MOVIES
-  // =========================
-
-  const popularMovies = [];
-
-  for (let page = 1; page <= 3; page++) {
-
-    const response = await axios.get(
-      `${TMDB_BASE_URL}/movie/popular`,
-      {
-        params: {
-          api_key: process.env.TMDB_API_KEY,
-          language: "en-US",
-          page
-        }
-      }
-    );
-
-    popularMovies.push(
-      ...(response.data.results || [])
-    );
-  }
-
-  // =========================
-  // FILTER MOVIE PICK
-  // =========================
-
-  const candidates =
-    popularMovies.filter(item => {
-
-      if (
-        !item.id ||
-        !item.title ||
-        !item.poster_path ||
-        !item.overview
-      ) {
-        return false;
-      }
-
-      // Remove today's trending movies
-      if (trendingIds.has(item.id)) {
-        return false;
-      }
-
-      // Quality filter
-      if (
-        Number(item.vote_average || 0) < 6.5 ||
-        Number(item.vote_count || 0) < 100
-      ) {
-        return false;
-      }
-
-      // Remove movies posted within 7 days
-      for (const postText of recentlyPostedTitles) {
-
-        if (
-          postText.includes(item.title)
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-  if (!candidates.length) {
-    throw new Error(
-      "No suitable Movie Pick found after 7-day cooldown filter"
-    );
-  }
-
-  // =========================
-  // RANDOM MOVIE PICK
-  // =========================
-
-  movie =
-    candidates[
-      Math.floor(
-        Math.random() * candidates.length
-      )
-    ];
-}
-
-// =========================
-// FINAL MOVIE CHECK
-// =========================
-
-if (!movie) {
-  throw new Error(
-    "Movie selection failed"
-  );
-}
-
-
-
+    // =========================
+    // MOVIE DATA
+    // =========================
 
     const siteUrl = (
       process.env.SITE_URL ||
-      "http://localhost:3000"
+      "https://flickcanvas.vercel.app"
     ).replace(/\/$/, "");
 
-    const link = `${siteUrl}/movie/${movie.id}`;
+    const movieLink =
+      `${siteUrl}/movie/${movie.id}`;
+
+    const posterUrl =
+      `${IMAGE_BASE_URL}${movie.poster_path}`;
+
+    const rating =
+      Number(
+        movie.vote_average || 0
+      ).toFixed(1);
 
     // =========================
-// CHECK FACEBOOK POSTS - 7 DAY COOLDOWN
-// =========================
+    // GEMINI ARTICLE
+    // =========================
 
-const pageId = process.env.FACEBOOK_PAGE_ID;
-const pageAccessToken =
-  process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+    const movieArticle =
+      await generateMovieArticle(
+        movie
+      );
 
-const graphVersion =
-  process.env.FACEBOOK_GRAPH_VERSION || "v26.0";
+    // =========================
+    // MAIN POST TEXT
+    // NO MOVIE LINK HERE
+    // =========================
 
-// Current time
-const now = new Date();
+    const message =
+`🎬 ${movie.title}
 
-// 7 days ago
-const sevenDaysAgo = new Date(
-  now.getTime() - 7 * 24 * 60 * 60 * 1000
-);
+⭐ Rating: ${rating}/10
 
-const postsResponse = await axios.get(
-  `https://graph.facebook.com/${graphVersion}/${pageId}/posts`,
-  {
-    params: {
-      fields: "id,message,created_time",
-      limit: 100,
-      access_token: pageAccessToken
-    }
-  }
-);
-
-const posts = postsResponse.data.data || [];
-
-// =========================
-// DUPLICATE CHECK - 7 DAYS
-// =========================
-
-const alreadyPostedWithin7Days = posts.some(post => {
-
-  if (!post.message || !post.created_time) {
-    return false;
-  }
-
-  const postDate = new Date(post.created_time);
-
-  return (
-    postDate >= sevenDaysAgo &&
-    post.message.includes("FLICKCANVAS") &&
-    post.message.includes(movie.title)
-  );
-});
-
-
-// =========================
-// CREATE FACEBOOK MESSAGE
-// =========================
-
-function formatReleaseDate(dateString) {
-  if (!dateString) return "N/A";
-
-  const date = new Date(`${dateString}T00:00:00`);
-
-  if (Number.isNaN(date.getTime())) {
-    return dateString;
-  }
-
-  return date.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric"
-  });
-}
-
-const formattedDate = formatReleaseDate(movie.release_date);
-
-const rating = movie.vote_average > 0
-  ? Number(movie.vote_average).toFixed(1)
-  : "N/A";
-
-// TMDB poster image
-const posterUrl = movie.poster_path
-  ? `${IMAGE_BASE_URL}${movie.poster_path}`
-  : null;
-  // =========================
-// ENGLISH MOVIE DESCRIPTION
-// =========================
-
-const genreMap = {
-  28: "Action",
-  12: "Adventure",
-  16: "Animation",
-  35: "Comedy",
-  80: "Crime",
-  99: "Documentary",
-  18: "Drama",
-  10751: "Family",
-  14: "Fantasy",
-  36: "History",
-  27: "Horror",
-  10402: "Music",
-  9648: "Mystery",
-  10749: "Romance",
-  878: "Sci-Fi",
-  10770: "TV Movie",
-  53: "Thriller",
-  10752: "War",
-  37: "Western"
-};
-
-function getMoviePickDescription(movie) {
-  const genres = (movie.genre_ids || [])
-    .map(id => genreMap[id])
-    .filter(Boolean);
-
-  let intro =
-    "🎬 A movie worth discovering for any film lover.";
-
-  if (genres.includes("Action")) {
-    intro =
-      "🔥 An exciting choice for action movie fans.";
-  } else if (genres.includes("Horror")) {
-    intro =
-      "👻 A chilling pick for fans of horror and suspense.";
-  } else if (genres.includes("Thriller")) {
-    intro =
-      "😱 A gripping choice for anyone who enjoys suspense and tension.";
-  } else if (genres.includes("Sci-Fi")) {
-    intro =
-      "🚀 A fascinating pick for fans of science fiction and unforgettable worlds.";
-  } else if (genres.includes("Romance")) {
-    intro =
-      "❤️ A great choice for fans of romance and emotional stories.";
-  } else if (genres.includes("Comedy")) {
-    intro =
-      "😂 A fun pick for anyone looking for an entertaining movie.";
-  } else if (genres.includes("Drama")) {
-    intro =
-      "🎭 A compelling choice for fans of powerful character-driven stories.";
-  } else if (genres.includes("Adventure")) {
-    intro =
-      "🌎 A thrilling pick for fans of adventure and exciting journeys.";
-  } else if (genres.includes("Mystery")) {
-    intro =
-      "🕵️ A mysterious pick for anyone who enjoys puzzles and unexpected turns.";
-  }
-
-  const overview = String(movie.overview || "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  let shortOverview = overview;
-
-  if (shortOverview.length > 300) {
-    shortOverview =
-      shortOverview
-        .slice(0, 297)
-        .replace(/\s+\S*$/, "") + "...";
-  }
-
-  return `${intro}\n\n${shortOverview}`;
-}
-
-const movieDescription =
-  await generateMovieArticle(movie);
-
-const message = isMoviePick
-  ? `🎬 FLICKCANVAS Movie Pick
-
-${movie.title}
-
-⭐ Rating: ${rating}${rating !== "N/A" ? "/10" : ""}
-
-📅 Release Date: ${formattedDate}
-
-${movieDescription}
-
-💬 Have you watched this movie? What did you think? 👇
-
-❤️ Like this post if you love discovering great movies.
-
-📌 Follow FLICKCANVAS for more movie recommendations, trailers, and updates!
-
-👇 Check the comments below for the movie link!
-
-#FLICKCANVAS #MoviePick #Movies #MovieRecommendation #MovieLovers`
-  : `🎬 FLICKCANVAS Movie of the Day
-
-${movie.title}
-
-⭐ Rating: ${rating}${rating !== "N/A" ? "/10" : ""}
-
-📅 Release Date: ${formattedDate}
-
-${movieDescription}
+${movieArticle}
 
 💬 Would you watch this movie? Tell us what you think! 👇
 
-❤️ Like this post if you love discovering new movies.
+📌 Follow FLICKCANVAS for more movies, trailers and recommendations.
 
-📌 Follow FLICKCANVAS to discover more trending movies, trailers, and movie updates every day!
-
-👇 Check the comments below for the movie link!
-
-#FLICKCANVAS #MovieOfTheDay #Movies #MovieLovers #TrendingMovies`;
-
-// =========================
-// POST TO FACEBOOK
-// =========================
-
-let facebookResult = null;
-const forceFacebookTest = false;
-
-if (alreadyPostedWithin7Days && !forceFacebookTest) {
-  facebookResult = {
-    success: true,
-    skipped: true,
-    reason: "This movie was posted on Facebook within the last 7 days",
-    movie: movie.title
-  };
-
-  console.log(
-    `Facebook duplicate skipped: ${movie.title}`
-  );
-} else {
-  const { postToFacebookPage } =
-    require("./facebook");
-
-  facebookResult = await postToFacebookPage({
-    message,
-    link,
-    imageUrl: posterUrl
-  });
-
-  console.log(
-    `Facebook posted successfully: ${movie.title}`
-  );
-}
-// =========================
-// INSTAGRAM AUTO POST
-// =========================
-
-let instagramResult = null;
-
-try {
-  const instagramAccountId =
-    process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
-
-  const instagramAccessToken =
-    process.env.INSTAGRAM_ACCESS_TOKEN;
-
-  const instagramGraphVersion =
-    process.env.INSTAGRAM_GRAPH_VERSION || "v26.0";
-
-  if (!instagramAccountId || !instagramAccessToken) {
-    console.log(
-      "Instagram auto post skipped: Instagram credentials missing"
-    );
-  } else if (!posterUrl) {
-    console.log(
-      "Instagram auto post skipped: Movie has no poster"
-    );
-  } else {
-
-    const instagramCaption = message;
-
-
-
+#FLICKCANVAS #Movies #MovieOfTheDay #MovieRecommendation #MovieLovers`;
 
     // =========================
-// CHECK INSTAGRAM POSTS - 7 DAY COOLDOWN
-// =========================
+    // FACEBOOK
+    // =========================
 
-const mediaResponse = await axios.get(
-  `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
-  {
-    params: {
-      fields: "id,caption,timestamp,media_type",
-      limit: 100,
-      access_token: instagramAccessToken
-    }
-  }
-);
+    let facebookResult = null;
 
-const instagramMedia =
-  mediaResponse.data.data || [];
+    try {
 
-const now = new Date();
+      const {
+        postToFacebookPage
+      } = require("./facebook");
 
-const sevenDaysAgo = new Date(
-  now.getTime() - 7 * 24 * 60 * 60 * 1000
-);
+      facebookResult =
+        await postToFacebookPage({
+          message,
+          link: movieLink,
+          imageUrl: posterUrl
+        });
 
-const alreadyPostedInstagram =
-  instagramMedia.some(item => {
-
-    if (!item.caption || !item.timestamp) {
-      return false;
-    }
-
-    const postDate = new Date(item.timestamp);
-
-    return (
-      postDate >= sevenDaysAgo &&
-      item.caption.includes("FLICKCANVAS") &&
-      item.caption.includes(movie.title)
-    );
-  });
-
-if (alreadyPostedInstagram) {
-
-  instagramResult = {
-    success: true,
-    skipped: true,
-    reason: "This movie was posted on Instagram within the last 7 days",
-    movie: movie.title
-  };
-
-  console.log(
-    `Instagram duplicate skipped: ${movie.title}`
-  );
-
-} else {
-
-      // =========================
-      // CREATE MEDIA CONTAINER
-      // =========================
-
-      const containerResponse = await axios.post(
-        `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
-        null,
-        {
-          params: {
-            image_url: posterUrl,
-            caption: instagramCaption,
-            access_token: instagramAccessToken
-          }
-        }
+      console.log(
+        `Facebook posted: ${movie.title}`
       );
+
+    } catch (facebookError) {
+
+      console.error(
+        "FACEBOOK AUTO POST ERROR:",
+        facebookError.response?.data ||
+        facebookError.message
+      );
+
+      facebookResult = {
+        success: false,
+        error:
+          facebookError.response?.data ||
+          facebookError.message
+      };
+    }
+
+    // =========================
+    // INSTAGRAM
+    // =========================
+
+    let instagramResult = null;
+
+    try {
+
+      if (
+        !instagramAccountId ||
+        !instagramAccessToken
+      ) {
+        throw new Error(
+          "Instagram credentials missing"
+        );
+      }
+
+      // =========================
+      // CREATE IMAGE CONTAINER
+      // =========================
+
+      const containerResponse =
+        await axios.post(
+          `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media`,
+          null,
+          {
+            params: {
+              image_url:
+                posterUrl,
+
+              caption:
+                message,
+
+              access_token:
+                instagramAccessToken
+            }
+          }
+        );
 
       const creationId =
         containerResponse.data.id;
 
       if (!creationId) {
         throw new Error(
-          "Instagram media container was not created"
+          "Instagram container was not created"
         );
       }
 
       // =========================
-      // WAIT FOR MEDIA PROCESSING
+      // WAIT FOR INSTAGRAM
       // =========================
 
       let mediaReady = false;
 
-      for (let attempt = 0; attempt < 10; attempt++) {
+      for (
+        let attempt = 1;
+        attempt <= 20;
+        attempt++
+      ) {
 
-        await new Promise(resolve =>
-          setTimeout(resolve, 3000)
+        await new Promise(
+          resolve =>
+            setTimeout(
+              resolve,
+              3000
+            )
         );
 
-        const statusResponse = await axios.get(
-          `https://graph.facebook.com/${instagramGraphVersion}/${creationId}`,
-          {
-            params: {
-              fields: "status_code",
-              access_token: instagramAccessToken
+        const statusResponse =
+          await axios.get(
+            `https://graph.facebook.com/${instagramGraphVersion}/${creationId}`,
+            {
+              params: {
+                fields:
+                  "status_code",
+
+                access_token:
+                  instagramAccessToken
+              }
             }
-          }
-        );
+          );
 
         const status =
           statusResponse.data.status_code;
 
         console.log(
-          `Instagram media status: ${status}`
+          `Instagram image status: ${status}`
         );
 
-        if (status === "FINISHED") {
+        if (
+          status === "FINISHED"
+        ) {
           mediaReady = true;
           break;
         }
@@ -3795,216 +3389,253 @@ if (alreadyPostedInstagram) {
           status === "EXPIRED"
         ) {
           throw new Error(
-            `Instagram media processing failed: ${status}`
+            `Instagram processing failed: ${status}`
           );
         }
       }
 
       if (!mediaReady) {
         throw new Error(
-          "Instagram media processing timeout"
+          "Instagram processing timeout"
         );
       }
 
       // =========================
-      // PUBLISH INSTAGRAM POST
+      // PUBLISH INSTAGRAM
       // =========================
 
-      const publishResponse = await axios.post(
-        `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media_publish`,
-        null,
-        {
-          params: {
-            creation_id: creationId,
-            access_token: instagramAccessToken
+      const publishResponse =
+        await axios.post(
+          `https://graph.facebook.com/${instagramGraphVersion}/${instagramAccountId}/media_publish`,
+          null,
+          {
+            params: {
+              creation_id:
+                creationId,
+
+              access_token:
+                instagramAccessToken
+            }
           }
-        }
-      );
-      const instagramMediaId = publishResponse.data.id;
+        );
 
-// =========================
-// POST FIRST COMMENT
-// =========================
+      const instagramMediaId =
+        publishResponse.data.id;
 
-const instagramComment =
-  `🎬 Watch the Trailer & view more details:\n\n${link}`;
+      // =========================
+      // INSTAGRAM FIRST COMMENT
+      // =========================
 
-const commentResponse = await axios.post(
-  `https://graph.facebook.com/${instagramGraphVersion}/${instagramMediaId}/comments`,
-  null,
-  {
-    params: {
-      message: instagramComment,
-      access_token: instagramAccessToken
-    }
-  }
-);
+      let instagramCommentId =
+        null;
 
-console.log(
-  `Instagram first comment posted successfully: ${movie.title}`
-);
+      if (instagramMediaId) {
+
+        const instagramComment =
+`🎬 Watch the Trailer & view more details:
+
+${movieLink}`;
+
+        const commentResponse =
+          await axios.post(
+            `https://graph.facebook.com/${instagramGraphVersion}/${instagramMediaId}/comments`,
+            null,
+            {
+              params: {
+                message:
+                  instagramComment,
+
+                access_token:
+                  instagramAccessToken
+              }
+            }
+          );
+
+        instagramCommentId =
+          commentResponse.data.id;
+      }
 
       instagramResult = {
-  success: true,
-  skipped: false,
-  movie: movie.title,
-  instagramMediaId: instagramMediaId,
-  instagramCommentId: commentResponse.data.id
-};
+        success: true,
+        skipped: false,
+        movie:
+          movie.title,
+
+        instagramMediaId,
+
+        instagramCommentId
+      };
 
       console.log(
-        `Instagram posted successfully: ${movie.title}`
+        `Instagram posted: ${movie.title}`
       );
+
+    } catch (instagramError) {
+
+      console.error(
+        "INSTAGRAM AUTO POST ERROR:",
+        instagramError.response?.data ||
+        instagramError.message
+      );
+
+      instagramResult = {
+        success: false,
+        error:
+          instagramError.response?.data ||
+          instagramError.message
+      };
     }
-  }
 
-} catch (instagramError) {
+    // =========================
+    // PINTEREST
+    // =========================
 
-  console.error(
-    "INSTAGRAM AUTO POST ERROR:",
-    instagramError.response?.data ||
-    instagramError.message
-  );
+    let pinterestResult = null;
 
-  instagramResult = {
-    success: false,
-    error:
-      instagramError.response?.data ||
-      instagramError.message
-  };
-}
-// =========================
-// PINTEREST SANDBOX AUTO POST
-// =========================
+    try {
 
-let pinterestResult = null;
+      const pinterestAccessToken =
+        process.env.PINTEREST_ACCESS_TOKEN;
 
-try {
-  const pinterestAccessToken =
-    process.env.PINTEREST_ACCESS_TOKEN;
+      const pinterestBoardId =
+        process.env.PINTEREST_BOARD_ID ||
+        "1138073837026954410";
 
-  const pinterestBoardId =
-    "1138073837026954410";
+      if (!pinterestAccessToken) {
+        throw new Error(
+          "PINTEREST_ACCESS_TOKEN is missing"
+        );
+      }
 
-  if (!pinterestAccessToken) {
-
-    console.log(
-      "Pinterest auto post skipped: Pinterest access token missing"
-    );
-
-    pinterestResult = {
-      success: false,
-      skipped: true,
-      reason: "PINTEREST_ACCESS_TOKEN is missing"
-    };
-
-  } else if (!posterUrl) {
-
-    console.log(
-      "Pinterest auto post skipped: Movie has no poster"
-    );
-
-    pinterestResult = {
-      success: false,
-      skipped: true,
-      reason: "Movie has no poster"
-    };
-
-  } else {
-
-    const pinterestDescription =
-      `🎬 ${movie.title}
+      const pinterestDescription =
+`🎬 ${movie.title}
 
 ⭐ Rating: ${rating}/10
 
-📅 Release Date: ${formattedDate}
+${movieArticle}
 
-${movie.overview || "Discover this movie on FLICKCANVAS."}
+🎥 Watch the trailer and view movie details on FLICKCANVAS.
 
-🎥 Watch the trailer and view more details on FLICKCANVAS.
+#FLICKCANVAS #Movies #MovieRecommendation #MovieLovers`;
 
-#FLICKCANVAS #Movies #MovieLovers #MovieRecommendation`;
+      // Keep current project Pinterest Sandbox API.
+      // Change this only when Pinterest production API is enabled.
 
-    const pinterestResponse = await axios.post(
-      "https://api-sandbox.pinterest.com/v5/pins",
-      {
-        board_id: pinterestBoardId,
+      const pinterestResponse =
+        await axios.post(
+          "https://api-sandbox.pinterest.com/v5/pins",
+          {
+            board_id:
+              pinterestBoardId,
 
-        title: `🎬 ${movie.title}`,
+            title:
+              `${movie.title} | FLICKCANVAS`,
 
-        description: pinterestDescription,
+            description:
+              pinterestDescription,
 
-        media_source: {
-          source_type: "image_url",
-          url: posterUrl
-        },
+            media_source: {
+              source_type:
+                "image_url",
 
-        link: link
-      },
-      {
-        headers: {
-          Authorization:
-            `Bearer ${pinterestAccessToken}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
+              url:
+                posterUrl
+            },
 
-    console.log(
-      "PINTEREST SANDBOX AUTO POST CREATED:",
-      pinterestResponse.data
-    );
+            link:
+              movieLink
+          },
+          {
+            headers: {
+              Authorization:
+                `Bearer ${pinterestAccessToken}`,
 
-    pinterestResult = {
+              "Content-Type":
+                "application/json"
+            }
+          }
+        );
+
+      pinterestResult = {
+        success: true,
+        skipped: false,
+        movie:
+          movie.title,
+
+        pinterestPinId:
+          pinterestResponse.data.id
+      };
+
+      console.log(
+        `Pinterest posted: ${movie.title}`
+      );
+
+    } catch (pinterestError) {
+
+      console.error(
+        "PINTEREST AUTO POST ERROR:",
+        pinterestError.response?.data ||
+        pinterestError.message
+      );
+
+      pinterestResult = {
+        success: false,
+        error:
+          pinterestError.response?.data ||
+          pinterestError.message
+      };
+    }
+
+    // =========================
+    // FINAL RESPONSE
+    // =========================
+
+    return res.json({
       success: true,
-      skipped: false,
-      movie: movie.title,
-      pinterestPinId:
-        pinterestResponse.data.id
-    };
 
-    console.log(
-      `Pinterest Sandbox posted successfully: ${movie.title}`
+      movie: {
+        id:
+          movie.id,
+
+        title:
+          movie.title,
+
+        rating,
+
+        posterUrl,
+
+        link:
+          movieLink
+      },
+
+      article:
+        movieArticle,
+
+      facebook:
+        facebookResult,
+
+      instagram:
+        instagramResult,
+
+      pinterest:
+        pinterestResult
+    });
+
+  } catch (error) {
+
+    console.error(
+      "DAILY AUTO POST ERROR:",
+      error.response?.data ||
+      error.message
     );
+
+    return res.status(500).json({
+      success: false,
+      error:
+        error.response?.data ||
+        error.message
+    });
   }
-
-} catch (pinterestError) {
-
-  console.error(
-    "PINTEREST SANDBOX AUTO POST ERROR:",
-    pinterestError.response?.data ||
-    pinterestError.message
-  );
-
-  pinterestResult = {
-    success: false,
-    error:
-      pinterestError.response?.data ||
-      pinterestError.message
-  };
-}
-
-res.json({
-  success: true,
-  skipped: false,
-  movie: movie.title,
-  facebook: facebookResult,
-  instagram: instagramResult,
-  pinterest: pinterestResult
-});
-
-} catch (error) {
-  console.error(
-    "FACEBOOK AUTO POST ERROR:",
-    error.response?.data || error.message
-  );
-
-  res.status(500).json({
-    error: "Facebook post failed",
-    details:
-      error.response?.data || error.message
-  });
-}
 });
 
 // =========================

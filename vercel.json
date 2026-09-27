@@ -15,11 +15,7 @@
   "crons": [
     {
       "path": "/api/facebook/auto-post",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/facebook/auto-post",
-      "schedule": "0 22 * * *"
+      "schedule": "0 17 * * *"
     }
   ]
 }
